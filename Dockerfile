@@ -10,8 +10,14 @@ WORKDIR /app
 RUN apk add --no-cache openssl
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+
 # GERA O CLIENT DO PRISMA ANTES DO BUILD
 RUN npx prisma generate
+
+# INJETA VARIÁVEL FAKE PARA IMPEDIR QUEBRAS NA PRÉ-RENDERIZAÇÃO DO NEXT.JS
+ENV DATABASE_URL="mysql://dummy:dummy@localhost:3306/dummy"
+
+# COMPILA A APLICAÇÃO
 RUN npm run build
 
 FROM node:20-alpine AS runner
