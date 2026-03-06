@@ -37,19 +37,19 @@ export default function PainelPage() {
 
   const isAdmin = user && ["ADMIN", "TRIAGEM", "EDUCACAO", "CMAA", "PREFEITO"].includes(user.role);
 
-  const statusConfig: Record<string, { icon: string, color: string }> = {
-    RASCUNHO: { icon: "📝", color: "var(--muted)" },
-    SUBMETIDA: { icon: "📥", color: "#3b82f6" },
-    EM_TRIAGEM: { icon: "🔍", color: "#8b5cf6" },
-    PARECER_EDUCACAO: { icon: "📚", color: "#8b5cf6" },
-    AVALIACAO_CMAA: { icon: "⚖️", color: "#f59e0b" },
-    CLASSIFICADA: { icon: "🏆", color: "#10b981" },
-    HOMOLOGADA: { icon: "✅", color: "#10b981" },
-    TERMO_OUTORGA: { icon: "📄", color: "#10b981" },
-    EM_EXECUCAO: { icon: "⚙️", color: "var(--good)" },
-    SUSPENSA: { icon: "⏸️", color: "var(--warn)" },
-    CANCELADA: { icon: "❌", color: "var(--bad)" },
-    CONCLUIDA: { icon: "🏁", color: "var(--accent)" },
+  const statusConfig: Record<string, { icon: string, color: string, label: string }> = {
+    RASCUNHO: { icon: "📝", color: "var(--muted)", label: "Em rascunho" },
+    SUBMETIDA: { icon: "📥", color: "#3b82f6", label: "Aguardando feedback" },
+    EM_TRIAGEM: { icon: "🔍", color: "#8b5cf6", label: "Em triagem" },
+    PARECER_EDUCACAO: { icon: "📚", color: "#8b5cf6", label: "Parecer Educação" },
+    AVALIACAO_CMAA: { icon: "⚖️", color: "#f59e0b", label: "Avaliação CMAA" },
+    CLASSIFICADA: { icon: "🏆", color: "#10b981", label: "Classificada" },
+    HOMOLOGADA: { icon: "✅", color: "#10b981", label: "Homologada" },
+    TERMO_OUTORGA: { icon: "📄", color: "#10b981", label: "Termo de outorga" },
+    EM_EXECUCAO: { icon: "⚙️", color: "var(--good)", label: "Em execução" },
+    SUSPENSA: { icon: "⏸️", color: "var(--warn)", label: "Suspensa" },
+    CANCELADA: { icon: "❌", color: "var(--bad)", label: "Cancelada" },
+    CONCLUIDA: { icon: "🏁", color: "var(--accent)", label: "Concluída" },
   };
 
   return (
@@ -111,20 +111,31 @@ export default function PainelPage() {
               {propostas.map((p: any) => {
                 const conf = statusConfig[p.status] || { icon: "📄", color: "var(--muted)" };
                 return (
-                  <div key={p.id} className="feature-card" style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+              <div key={p.id} className="feature-card" style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
                     <div>
-                      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                      <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
                         <span className="badge" style={{ borderColor: conf.color, backgroundColor: `${conf.color}15`, color: conf.color, fontWeight: 600 }}>
-                          {conf.icon} {p.status.replace(/_/g, " ")}
+                          {conf.icon} {conf.label}
                         </span>
                         <span className="badge">{p.modalidade}</span>
+                        {p.status === "RASCUNHO" && p.aiAnalysisJson && (
+                          <span className="badge" style={{ borderColor: "#10b981", backgroundColor: "rgba(16,185,129,0.1)", color: "#10b981", fontWeight: 600 }}>
+                            🤖 Pronta para envio
+                          </span>
+                        )}
                       </div>
-                      <h3 style={{ fontSize: 20, fontWeight: 700, margin: "0 0 8px", lineHeight: 1.3 }}>{p.titulo}</h3>
-                      <p className="p" style={{ fontSize: 14, margin: 0, opacity: 0.8 }}>Enviado em: {new Date(p.criadoEm).toLocaleDateString('pt-BR')}</p>
+                      <h3 style={{ fontSize: 20, fontWeight: 700, margin: "0 0 8px", lineHeight: 1.3 }}>{p.titulo || "(Sem título)"}</h3>
+                      <p className="p" style={{ fontSize: 14, margin: 0, opacity: 0.8 }}>
+                        {p.status === "RASCUNHO" ? "Editado" : "Enviado"} em: {new Date(p.createdAt).toLocaleDateString('pt-BR')}
+                      </p>
                     </div>
 
-                    <div style={{ marginTop: "auto", paddingTop: 16, borderTop: "1px solid var(--border)", display: "flex", justifyContent: "flex-end" }}>
-                      {p.status === "EM_EXECUCAO" ? (
+                    <div style={{ marginTop: "auto", paddingTop: 16, borderTop: "1px solid var(--border)", display: "flex", justifyContent: "flex-end", gap: 8 }}>
+                      {p.status === "RASCUNHO" ? (
+                        <Link href={`/propostas/nova?draft=${p.id}`} className="cta-btn cta-btn--primary" style={{ padding: "8px 16px", fontSize: 14 }}>
+                          ✏️ Continuar editando
+                        </Link>
+                      ) : p.status === "EM_EXECUCAO" ? (
                         <Link href={`/propostas/${p.id}`} className="cta-btn cta-btn--ghost" style={{ padding: "8px 16px", fontSize: 14, borderColor: "var(--good)" }}>
                           🚀 Marcos e Evidências
                         </Link>

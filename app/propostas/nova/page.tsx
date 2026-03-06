@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { z } from "zod";
 import RichEditor from "@/app/RichEditor";
 
@@ -193,19 +194,131 @@ export default function NovaPropostaPage() {
   const [aiResult, setAiResult] = useState<any>(null);
   const [aiError, setAiError] = useState<string | null>(null);
 
+  /* ─── Draft state ─── */
+  const searchParams = useSearchParams();
+  const [draftId, setDraftId] = useState<string | null>(null);
+  const [draftSaving, setDraftSaving] = useState(false);
+  const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
+  const [draftLoaded, setDraftLoaded] = useState(false);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initializedRef = useRef(false);
+
   useEffect(() => {
     fetch("/api/editais/abertos")
       .then((r) => r.json())
       .then((res) => {
         if (res.ok) {
           setEditais(res.data);
-          if (res.data.length > 0) {
+          if (res.data.length > 0 && !state.editalId) {
             set("editalId", res.data[0].id);
           }
         }
         setFetchingEditais(false);
       });
   }, []);
+
+  /* ─── Load draft from URL param ?draft=<id> ─── */
+  useEffect(() => {
+    const draftParam = searchParams.get("draft");
+    if (!draftParam || draftLoaded) return;
+    setDraftLoaded(true);
+    fetch(`/api/propostas/draft/${draftParam}`)
+      .then((r) => r.json())
+      .then((res) => {
+        if (!res.ok) return;
+        const d = res.data;
+        setDraftId(d.id);
+        setState({
+          editalId: d.editalId,
+          titulo: d.titulo || "",
+          resumo: d.resumo || "",
+          linhaTematica: d.linhaTematica || "",
+          duracaoMeses: d.duracaoMeses || 4,
+          problema: d.problema || "",
+          publicoAlvo: d.publicoAlvo || "",
+          propostaValor: d.propostaValor || "",
+          solucao: d.solucao || "",
+          metodologia: d.metodologia || "",
+          viabilidade: d.viabilidade || "",
+          riscos: d.riscos || "",
+          indicadores: d.indicadores || "",
+          orcamentoRateio: d.orcamentoRateio || "",
+          paginaPublicaPlano: d.paginaPublicaPlano || "",
+          ipConcorda: d.ipConcorda || false,
+          cronograma: Array.isArray(d.cronogramaJson) && d.cronogramaJson.length > 0
+            ? d.cronogramaJson.map((c: any, i: number) => ({
+                mes: c.mes || i + 1,
+                entregavel: c.entregavel || "",
+                evidencia: c.evidencia || "",
+                criterioAceitacao: c.criterioAceitacao || "",
+              }))
+            : Array.from({ length: d.duracaoMeses || 4 }, (_, i) => ({
+                mes: i + 1, entregavel: "", evidencia: "", criterioAceitacao: "",
+              })),
+          equipe: d.equipe && d.equipe.length > 0
+            ? d.equipe.map((eq: any) => ({
+                cpf: eq.cpf || "",
+                nome: eq.nome || "",
+                dataNasc: eq.dataNasc ? new Date(eq.dataNasc).toISOString().slice(0, 10) : "",
+                vinculoEstudantil: eq.vinculoEstudantil || "",
+                ehMenor: eq.ehMenor || false,
+                responsavelLegal: eq.responsavelLegal || "",
+                cpfResponsavel: eq.cpfResponsavel || "",
+                percentualRateio: eq.percentualRateio || 0,
+              }))
+            : [{ cpf: "", nome: "", dataNasc: "", vinculoEstudantil: "", ehMenor: false, responsavelLegal: "", cpfResponsavel: "", percentualRateio: 100 }],
+        });
+        if (d.aiAnalysisJson) setAiResult(d.aiAnalysisJson);
+        initializedRef.current = true;
+      });
+  }, [searchParams]);
+
+  /* ─── Debounced Auto-Save (3s after last change) ─── */
+  useEffect(() => {
+    // Don't save until editais are loaded and form has content
+    if (fetchingEditais || !state.editalId || aiLoading) return;
+    // Don't save on the very first render or during draft load
+    if (!initializedRef.current) {
+      initializedRef.current = true;
+      return;
+    }
+
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      setDraftSaving(true);
+      try {
+        const payload = { ...state, aiAnalysisJson: aiResult };
+        if (draftId) {
+          await fetch(`/api/propostas/draft/${draftId}`, {
+            method: "PUT",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+        } else {
+          const res = await fetch("/api/propostas/draft", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const json = await res.json();
+          if (json.ok && json.id) {
+            setDraftId(json.id);
+            // Update URL silently
+            const url = new URL(globalThis.location.href);
+            url.searchParams.set("draft", json.id);
+            globalThis.history.replaceState({}, "", url.toString());
+          }
+        }
+        setDraftSavedAt(new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }));
+      } catch {
+        // Silent fail – don't interrupt the user
+      } finally {
+        setDraftSaving(false);
+      }
+    }, 3000);
+
+    return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
+  }, [state, aiResult]);
 
   /* ─── Auto-sync cronograma with duracaoMeses ─── */
   useEffect(() => {
@@ -297,6 +410,7 @@ export default function NovaPropostaPage() {
       const payload = {
         ...parsed.data,
         aiAnalysisJson: aiResult,
+        draftId: draftId || undefined,
       };
 
       const res = await fetch("/api/propostas", {
@@ -410,7 +524,27 @@ export default function NovaPropostaPage() {
     <div style={{ position: "relative", paddingBottom: 60 }}>
       {/* Background Orbs */}
       <div className="hero-orb hero-orb--1" style={{ width: 400, height: 400, top: -50, left: -100, opacity: 0.2 }} aria-hidden />
-      
+
+      {/* ─── Floating Draft Save Indicator ─── */}
+      {(draftSaving || draftSavedAt) && (
+        <div style={{
+          position: "fixed", top: 16, right: 16, zIndex: 9999,
+          padding: "10px 18px", borderRadius: 12,
+          background: "rgba(15, 15, 25, 0.85)", backdropFilter: "blur(12px)",
+          border: `1px solid ${draftSaving ? "rgba(139, 92, 246, 0.4)" : "rgba(34, 197, 94, 0.3)"}`,
+          color: draftSaving ? "#c4b5fd" : "#86efac",
+          fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 8,
+          boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
+          animation: "fadeInDown 0.3s ease-out",
+          transition: "border-color 0.3s, color 0.3s",
+        }}>
+          {draftSaving ? (
+            <><span style={{ display: "inline-block", animation: "spin 1s linear infinite", fontSize: 14 }}>⏳</span> Salvando rascunho...</>
+          ) : (
+            <><span style={{ fontSize: 14 }}>✓</span> Rascunho salvo às {draftSavedAt}</>
+          )}
+        </div>
+      )}
       {/* Header Banner */}
       <div style={{ textAlign: "center", padding: "40px 20px 60px", position: "relative", zIndex: 2 }}>
         <span className="section-tag" style={{ marginBottom: 16 }}>🚀 Nova Ideia</span>

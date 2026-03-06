@@ -137,8 +137,8 @@ model Proposta {
   editalId           String
   proponenteId       String
   titulo             String          @db.VarChar(255)
-  resumo             String          @db.VarChar(1000)
-  linhaTematica      String          @db.VarChar(100)
+  resumo             String          @db.Text
+  linhaTematica      String          @db.VarChar(255)
   modalidade         Modalidade
   duracaoMeses       Int
   problema           String          @db.Text

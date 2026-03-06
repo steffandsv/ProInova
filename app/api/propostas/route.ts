@@ -19,6 +19,7 @@ export async function GET(req: Request) {
         modalidade: true,
         createdAt: true,
         duracaoMeses: true,
+        aiAnalysisJson: true,
       },
       orderBy: { createdAt: "desc" },
     });
@@ -99,8 +100,85 @@ export async function POST(req: Request) {
       }
     }
 
-    // Create everything in a transaction
+    const draftId = body.draftId as string | undefined;
+
     const result = await prisma.$transaction(async (tx) => {
+      // If converting a draft, update instead of create
+      if (draftId) {
+        const existingDraft = await tx.proposta.findFirst({
+          where: { id: draftId, proponenteId: session.sub, status: "RASCUNHO" },
+        });
+        if (!existingDraft) {
+          throw new Error("Rascunho não encontrado ou já foi submetido.");
+        }
+
+        // Clear old equipe & marcos from the draft
+        await tx.equipeMembro.deleteMany({ where: { propostaId: draftId } });
+        await tx.marco.deleteMany({ where: { propostaId: draftId } });
+
+        // Update the draft → SUBMETIDA
+        await tx.proposta.update({
+          where: { id: draftId },
+          data: {
+            titulo: parsed.data.titulo,
+            resumo: parsed.data.resumo,
+            linhaTematica: parsed.data.linhaTematica,
+            modalidade: edital.modalidade,
+            duracaoMeses: parsed.data.duracaoMeses,
+            problema: parsed.data.problema,
+            publicoAlvo: parsed.data.publicoAlvo,
+            propostaValor: parsed.data.propostaValor,
+            solucao: parsed.data.solucao,
+            metodologia: parsed.data.metodologia,
+            viabilidade: parsed.data.viabilidade,
+            riscos: parsed.data.riscos,
+            indicadores: parsed.data.indicadores,
+            orcamentoRateio: parsed.data.orcamentoRateio,
+            paginaPublicaPlano: parsed.data.paginaPublicaPlano,
+            ipConcorda: parsed.data.ipConcorda,
+            cronogramaJson: parsed.data.cronograma,
+            pdfPropostaUrl: parsed.data.pdfPropostaUrl || null,
+            aiAnalysisJson: parsed.data.aiAnalysisJson || null,
+            status: "SUBMETIDA",
+          },
+        });
+
+        // Re-create marcos and equipe
+        await tx.marco.createMany({
+          data: parsed.data.cronograma.map((c) => ({
+            propostaId: draftId,
+            mes: c.mes,
+            entregavel: c.entregavel,
+            evidenciaEsperada: c.evidencia,
+            criterioAceitacao: c.criterioAceitacao,
+            status: "PENDENTE" as const,
+          })),
+        });
+        await tx.equipeMembro.createMany({
+          data: parsed.data.equipe.map((eq) => ({
+            propostaId: draftId,
+            cpf: eq.cpf,
+            nome: eq.nome,
+            dataNasc: eq.dataNasc ? new Date(eq.dataNasc) : undefined,
+            vinculoEstudantil: eq.vinculoEstudantil,
+            ehMenor: eq.ehMenor,
+            responsavelLegal: eq.responsavelLegal,
+            cpfResponsavel: eq.cpfResponsavel,
+            percentualRateio: eq.percentualRateio,
+          })),
+        });
+
+        await logAudit({
+          userId: session.sub,
+          action: "PROPOSTA_SUBMETIDA",
+          entityType: "Proposta",
+          entityId: draftId,
+        }, tx);
+
+        return { id: draftId };
+      }
+
+      // Normal flow: create a new proposal
       const p = await tx.proposta.create({
         data: {
           editalId: edital.id,
@@ -108,7 +186,7 @@ export async function POST(req: Request) {
           titulo: parsed.data.titulo,
           resumo: parsed.data.resumo,
           linhaTematica: parsed.data.linhaTematica,
-          modalidade: edital.modalidade, // Herdado do edital
+          modalidade: edital.modalidade,
           duracaoMeses: parsed.data.duracaoMeses,
           problema: parsed.data.problema,
           publicoAlvo: parsed.data.publicoAlvo,
@@ -121,7 +199,7 @@ export async function POST(req: Request) {
           orcamentoRateio: parsed.data.orcamentoRateio,
           paginaPublicaPlano: parsed.data.paginaPublicaPlano,
           ipConcorda: parsed.data.ipConcorda,
-          cronogramaJson: parsed.data.cronograma, // Legado, backup
+          cronogramaJson: parsed.data.cronograma,
           pdfPropostaUrl: parsed.data.pdfPropostaUrl || null,
           aiAnalysisJson: parsed.data.aiAnalysisJson || null,
           status: "SUBMETIDA",
@@ -156,7 +234,7 @@ export async function POST(req: Request) {
         action: "PROPOSTA_SUBMETIDA",
         entityType: "Proposta",
         entityId: p.id,
-      });
+      }, tx);
 
       return p;
     });
