@@ -96,6 +96,12 @@ export default function NovaPropostaPage() {
   const [msg, setMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  /* ─── AI Preview state ─── */
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiResult, setAiResult] = useState<any>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [showAiModal, setShowAiModal] = useState(false);
+
   /* ─── PDF upload state ─── */
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [pdfUploading, setPdfUploading] = useState(false);
@@ -241,6 +247,39 @@ export default function NovaPropostaPage() {
     } catch {
       setMsg("Falha de rede. Tente novamente.");
       setLoading(false);
+    }
+  }
+
+  /* ─── AI Preview ─── */
+  async function submitToAI() {
+    setAiError(null);
+    setAiResult(null);
+    const parsed = PropostaSchema.safeParse(state);
+    if (!parsed.success) {
+      setAiError(
+        parsed.error.issues[0]?.message ||
+          "Preencha todos os campos obrigatórios antes de solicitar a análise da I.A."
+      );
+      return;
+    }
+    setAiLoading(true);
+    setShowAiModal(true);
+    try {
+      const res = await fetch("/api/propostas/ai-preview", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(parsed.data),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        setAiError(json?.message || "Erro ao solicitar análise da I.A.");
+      } else {
+        setAiResult(json.analysis);
+      }
+    } catch {
+      setAiError("Falha de rede ao solicitar análise da I.A. Tente novamente.");
+    } finally {
+      setAiLoading(false);
     }
   }
 
@@ -582,11 +621,32 @@ export default function NovaPropostaPage() {
             </div>
           </label>
 
-          {/* SUBMIT BUTTON */}
-          <button className="cta-btn cta-btn--primary" onClick={submit} disabled={loading || editais.length === 0} style={{ width: "100%", justifyContent: "center", padding: "16px", fontSize: 16 }}>
-            {loading ? "Processando envio da proposta..." : "🚀 Submeter Ideia ao Comitê"}
-          </button>
-          
+          {/* SUBMIT BUTTONS */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <button
+              className="cta-btn cta-btn--primary"
+              onClick={submitToAI}
+              disabled={aiLoading || editais.length === 0}
+              style={{ width: "100%", justifyContent: "center", padding: "16px", fontSize: 16, background: "linear-gradient(135deg, #8b5cf6, #a78bfa)", border: "none" }}
+            >
+              {aiLoading ? "🧠 Analisando com I.A..." : "🤖 Submeter ao Analista I.A."}
+            </button>
+            <button
+              className="cta-btn cta-btn--ghost"
+              onClick={submit}
+              disabled={loading || editais.length === 0}
+              style={{ width: "100%", justifyContent: "center", padding: "16px", fontSize: 16 }}
+            >
+              {loading ? "Processando envio..." : "🚀 Enviar Proposta Direto ao Comitê"}
+            </button>
+          </div>
+
+          {aiError && !showAiModal && (
+            <div style={{ marginTop: 16, textAlign: "center", padding: "12px 16px", borderRadius: 10, background: "rgba(139, 92, 246, 0.1)", color: "#c4b5fd", border: "1px solid rgba(139, 92, 246, 0.3)" }}>
+              {aiError}
+            </div>
+          )}
+
           {msg && (
             <div style={{ marginTop: 16, textAlign: "center", padding: "12px 16px", borderRadius: 10, background: "rgba(239, 68, 68, 0.1)", color: "#fca5a5", border: "1px solid rgba(239, 68, 68, 0.3)" }}>
               {msg}
@@ -600,6 +660,141 @@ export default function NovaPropostaPage() {
         </section>
 
       </div>
+
+      {/* ═══════════════════════════════════════════════════ */}
+      {/* AI PREVIEW MODAL                                   */}
+      {/* ═══════════════════════════════════════════════════ */}
+      {showAiModal && (
+        <div className="ai-modal-overlay" onClick={() => { if (!aiLoading) setShowAiModal(false); }}>
+          <div className="ai-modal" onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div style={{ textAlign: "center", marginBottom: 32 }}>
+              <span style={{ fontSize: 48, display: "block", marginBottom: 12 }}>🤖</span>
+              <h2 className="h2" style={{ margin: 0, fontSize: 24 }}>
+                Análise do <span className="gradient-text">Analista I.A.</span>
+              </h2>
+              <p className="p" style={{ margin: "8px 0 0", fontSize: 14 }}>
+                Prévia inteligente baseada na Lei Municipal de Inovação
+              </p>
+            </div>
+
+            {/* Loading state */}
+            {aiLoading && (
+              <div style={{ textAlign: "center", padding: "60px 0" }}>
+                <div className="ai-loading-spinner" />
+                <p className="p" style={{ marginTop: 20, fontSize: 16, fontWeight: 600 }}>
+                  🧠 A I.A. está analisando sua proposta...
+                </p>
+                <p className="p" style={{ fontSize: 13, color: "var(--muted)" }}>
+                  Isso pode levar até 30 segundos
+                </p>
+              </div>
+            )}
+
+            {/* Error state */}
+            {!aiLoading && aiError && (
+              <div style={{ textAlign: "center", padding: "40px 0" }}>
+                <span style={{ fontSize: 48, display: "block", marginBottom: 16 }}>😞</span>
+                <p className="p" style={{ fontSize: 16, color: "#fca5a5" }}>{aiError}</p>
+                <button className="cta-btn cta-btn--ghost" onClick={() => setShowAiModal(false)} style={{ marginTop: 20 }}>Fechar</button>
+              </div>
+            )}
+
+            {/* Result state */}
+            {!aiLoading && aiResult && (
+              <div>
+                {/* Overall Score + Verdict */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 24, marginBottom: 32, flexWrap: "wrap" }}>
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{
+                      width: 100, height: 100, borderRadius: "50%",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 32, fontWeight: 800,
+                      background: `conic-gradient(
+                        ${aiResult.overallScore >= 7 ? "#22c55e" : aiResult.overallScore >= 5 ? "#f59e0b" : "#ef4444"}
+                        ${aiResult.overallScore * 10}%,
+                        rgba(255,255,255,0.08) 0
+                      )`,
+                      color: "var(--text)",
+                    }}>
+                      <span style={{
+                        width: 80, height: 80, borderRadius: "50%",
+                        background: "var(--card-bg)", display: "flex",
+                        alignItems: "center", justifyContent: "center",
+                      }}>
+                        {aiResult.overallScore}
+                      </span>
+                    </div>
+                    <p className="p" style={{ fontSize: 12, margin: "8px 0 0" }}>Nota Geral</p>
+                  </div>
+                  <div className={`ai-verdict-badge ${
+                    aiResult.verdict === "APROVAÇÃO PROVÁVEL" ? "ai-verdict--good" :
+                    aiResult.verdict === "COM RESSALVAS" ? "ai-verdict--warn" :
+                    "ai-verdict--bad"
+                  }`}>
+                    {aiResult.verdict === "APROVAÇÃO PROVÁVEL" ? "✅" :
+                     aiResult.verdict === "COM RESSALVAS" ? "⚠️" : "🔄"}
+                    {" "}{aiResult.verdict}
+                  </div>
+                </div>
+
+                {/* Category Cards */}
+                <div className="grid" style={{ gap: 12 }}>
+                  {aiResult.thoughts.map((t: any, idx: number) => (
+                    <div className="ai-score-card" key={idx}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                        <span style={{ fontSize: 15, fontWeight: 700 }}>
+                          {t.emoji} {t.category}
+                        </span>
+                        <span style={{
+                          fontSize: 18, fontWeight: 800,
+                          color: t.score >= 7 ? "#22c55e" : t.score >= 5 ? "#f59e0b" : "#ef4444",
+                        }}>
+                          {t.score}
+                        </span>
+                      </div>
+                      <div className="ai-score-bar">
+                        <div
+                          className="ai-score-fill"
+                          style={{
+                            width: `${t.score * 10}%`,
+                            background: t.score >= 7 ? "linear-gradient(90deg, #22c55e, #4ade80)" :
+                                        t.score >= 5 ? "linear-gradient(90deg, #f59e0b, #fbbf24)" :
+                                        "linear-gradient(90deg, #ef4444, #f87171)",
+                            animationDelay: `${idx * 0.1}s`,
+                          }}
+                        />
+                      </div>
+                      <p className="p" style={{ fontSize: 13, margin: "8px 0 0", lineHeight: 1.5 }}>
+                        {t.comment}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Actions */}
+                <div style={{ display: "flex", gap: 12, marginTop: 32, flexWrap: "wrap" }}>
+                  <button
+                    className="cta-btn cta-btn--ghost"
+                    onClick={() => setShowAiModal(false)}
+                    style={{ flex: 1, justifyContent: "center", minWidth: 160 }}
+                  >
+                    ← Voltar e Ajustar
+                  </button>
+                  <button
+                    className="cta-btn cta-btn--primary"
+                    onClick={() => { setShowAiModal(false); submit(); }}
+                    disabled={loading}
+                    style={{ flex: 1, justifyContent: "center", minWidth: 160 }}
+                  >
+                    {loading ? "Enviando..." : "🚀 Enviar ao Comitê"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
