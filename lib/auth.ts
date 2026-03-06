@@ -15,7 +15,7 @@ export type SessionPayload = {
 export function signSession(payload: Omit<SessionPayload, "userId">): string {
   const secret = process.env.JWT_SECRET;
   if (!secret) throw new Error("JWT_SECRET não configurado");
-  return jwt.sign(payload, secret, { expiresIn: "7d" });
+  return jwt.sign(payload, secret, { expiresIn: "365d" });
 }
 
 export function setSessionCookie(token: string) {
@@ -25,7 +25,7 @@ export function setSessionCookie(token: string) {
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 24 * 7,
+    maxAge: 60 * 60 * 24 * 365,
   });
 }
 

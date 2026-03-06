@@ -39,6 +39,12 @@ export default function HomePage() {
           </p>
         </div>
       </div>
+
+      <div className="card" style={{ textAlign: "center" }}>
+        <a href="/LEI.pdf" target="_blank" rel="noopener noreferrer" className="lei-banner" style={{ justifyContent: "center" }}>
+          📋 <strong>Consulte a Lei Municipal de Inovação</strong> — Conheça as regras e diretrizes do programa
+        </a>
+      </div>
     </div>
   );
 }

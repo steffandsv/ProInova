@@ -41,8 +41,11 @@ export default function AdminPropostasPage() {
   return (
     <div className="grid" style={{ gap: 14 }}>
       <div className="card">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
           <h1 className="h1">Gestão de Propostas e Avaliações</h1>
+          <a href="/LEI.pdf" target="_blank" rel="noopener noreferrer" className="lei-banner">
+            📋 <strong>Lei</strong>
+          </a>
         </div>
         
         <div className="row" style={{ marginBottom: 20 }}>

@@ -65,6 +65,7 @@ const PropostaSchema = z.object({
   ipConcorda: z.literal(true),
   cronograma: z.array(CronogramaItemSchema).min(1),
   equipe: z.array(EquipeMembroSchema).min(1),
+  pdfPropostaUrl: z.string().optional(),
 });
 
 export async function POST(req: Request) {
@@ -120,6 +121,7 @@ export async function POST(req: Request) {
           paginaPublicaPlano: parsed.data.paginaPublicaPlano,
           ipConcorda: parsed.data.ipConcorda,
           cronogramaJson: parsed.data.cronograma, // Legado, backup
+          pdfPropostaUrl: parsed.data.pdfPropostaUrl || null,
           status: "SUBMETIDA",
           
           marcos: {

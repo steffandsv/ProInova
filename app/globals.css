@@ -1,99 +1,346 @@
 :root {
   --bg: #0b0f14;
-  --panel: rgba(255,255,255,0.06);
-  --border: rgba(255,255,255,0.12);
-  --text: rgba(255,255,255,0.92);
-  --muted: rgba(255,255,255,0.66);
+  --panel: rgba(255, 255, 255, 0.06);
+  --border: rgba(255, 255, 255, 0.12);
+  --text: rgba(255, 255, 255, 0.92);
+  --muted: rgba(255, 255, 255, 0.66);
   --accent: #7c5cff;
   --good: #22c55e;
   --warn: #f59e0b;
   --bad: #ef4444;
 }
 
-* { box-sizing: border-box; }
-html, body { height: 100%; }
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  height: 100%;
+}
 body {
   margin: 0;
-  background: radial-gradient(1200px 600px at 30% -10%, rgba(124,92,255,0.25), transparent 55%),
-              radial-gradient(800px 500px at 80% 0%, rgba(34,197,94,0.18), transparent 55%),
-              radial-gradient(900px 600px at 50% 120%, rgba(245,158,11,0.12), transparent 55%),
-              var(--bg);
+  background:
+    radial-gradient(
+      80vw 50vh at 30% -10%,
+      rgba(124, 92, 255, 0.25),
+      transparent 55%
+    ),
+    radial-gradient(
+      60vw 40vh at 80% 0%,
+      rgba(34, 197, 94, 0.18),
+      transparent 55%
+    ),
+    radial-gradient(
+      70vw 50vh at 50% 120%,
+      rgba(245, 158, 11, 0.12),
+      transparent 55%
+    ),
+    var(--bg);
+  background-attachment: fixed;
   color: var(--text);
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    Helvetica,
+    Arial,
+    "Apple Color Emoji",
+    "Segoe UI Emoji";
 }
 
-a { color: inherit; text-decoration: none; opacity: 0.9; }
-a:hover { opacity: 1; }
+a {
+  color: inherit;
+  text-decoration: none;
+  opacity: 0.9;
+}
+a:hover {
+  opacity: 1;
+}
 
-.app-shell { min-height: 100%; display: grid; grid-template-rows: auto 1fr auto; }
+.app-shell {
+  min-height: 100%;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
 .app-header {
-  position: sticky; top: 0; z-index: 20;
-  display: flex; align-items: center; justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 18px 20px;
-  background: rgba(10,14,19,0.7);
+  background: rgba(10, 14, 19, 0.7);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border);
 }
-.brand { display: flex; gap: 12px; align-items: center; }
-.brand-dot { width: 14px; height: 14px; border-radius: 99px; background: var(--accent); box-shadow: 0 0 24px rgba(124,92,255,0.6); }
-.brand-title { font-weight: 700; letter-spacing: 0.2px; }
-.brand-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.brand {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.brand-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 99px;
+  background: var(--accent);
+  box-shadow: 0 0 24px rgba(124, 92, 255, 0.6);
+}
+.brand-title {
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+.brand-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+}
 
-.nav { display: flex; gap: 14px; font-size: 14px; color: var(--muted); }
-.nav a { padding: 8px 10px; border-radius: 10px; border: 1px solid transparent; }
-.nav a:hover { border-color: var(--border); background: var(--panel); color: var(--text); }
+.nav {
+  display: flex;
+  gap: 14px;
+  font-size: 14px;
+  color: var(--muted);
+  flex-wrap: wrap;
+  align-items: center;
+}
+.nav a {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.nav a:hover {
+  border-color: var(--border);
+  background: var(--panel);
+  color: var(--text);
+}
 
-.app-main { padding: 28px 20px 44px; max-width: 1080px; margin: 0 auto; width: 100%; }
-.app-footer { padding: 16px 20px; border-top: 1px solid var(--border); color: var(--muted); font-size: 12px; text-align: center; }
+.app-main {
+  padding: 28px 20px 44px;
+  max-width: 1080px;
+  margin: 0 auto;
+  width: 100%;
+}
+.app-footer {
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
 
 .card {
-  background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.04));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.07),
+    rgba(255, 255, 255, 0.04)
+  );
   border: 1px solid var(--border);
   border-radius: 22px;
   padding: 18px 18px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
 }
 
-.grid { display: grid; gap: 14px; }
-.grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-@media (max-width: 860px) { .grid.two { grid-template-columns: 1fr; } }
+.grid {
+  display: grid;
+  gap: 14px;
+}
+.grid.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (max-width: 860px) {
+  .grid.two {
+    grid-template-columns: 1fr;
+  }
+}
 
-.h1 { font-size: 32px; margin: 0 0 12px; }
-.p { color: var(--muted); margin: 0 0 18px; line-height: 1.5; }
+.h1 {
+  font-size: 32px;
+  margin: 0 0 12px;
+}
+.p {
+  color: var(--muted);
+  margin: 0 0 18px;
+  line-height: 1.5;
+}
 
-.input, .textarea, .select {
+.input,
+.textarea,
+.select {
   width: 100%;
-  background: rgba(0,0,0,0.25);
+  background: rgba(0, 0, 0, 0.25);
   border: 1px solid var(--border);
   color: var(--text);
   padding: 12px 12px;
   border-radius: 14px;
   outline: none;
 }
-.textarea { min-height: 120px; resize: vertical; }
-.label { font-size: 12px; color: var(--muted); margin: 0 0 6px; }
-.row { display: grid; gap: 8px; }
+.textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+.label {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0 0 6px;
+}
+.row {
+  display: grid;
+  gap: 8px;
+}
 
 .btn {
   appearance: none;
   border: 1px solid var(--border);
-  background: linear-gradient(180deg, rgba(124,92,255,0.9), rgba(124,92,255,0.55));
+  background: linear-gradient(
+    180deg,
+    rgba(124, 92, 255, 0.9),
+    rgba(124, 92, 255, 0.55)
+  );
   color: #fff;
   padding: 12px 14px;
   border-radius: 14px;
   cursor: pointer;
   font-weight: 650;
 }
-.btn:hover { filter: brightness(1.05); }
-.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.btn:hover {
+  filter: brightness(1.05);
+}
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
 .btn.secondary {
-  background: rgba(255,255,255,0.06);
+  background: rgba(255, 255, 255, 0.06);
   color: var(--text);
 }
 .badge {
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 6px 10px; border-radius: 999px;
-  border: 1px solid var(--border); background: rgba(255,255,255,0.05);
-  font-size: 12px; color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 12px;
+  color: var(--muted);
 }
-.badge strong { color: var(--text); }
+.badge strong {
+  color: var(--text);
+}
+
+/* ── Prose wrapper for rich text rendering ── */
+.prose {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+  line-height: 1.6;
+}
+.prose h1,
+.prose h2,
+.prose h3 {
+  margin: 0.5em 0 0.3em;
+}
+.prose ul,
+.prose ol {
+  padding-left: 1.5em;
+  margin: 0.5em 0;
+}
+.prose p {
+  margin: 0.4em 0;
+}
+
+/* ── Rich Text Editor (Quill) dark theme overrides ── */
+.ql-toolbar.ql-snow {
+  border: 1px solid var(--border) !important;
+  border-radius: 14px 14px 0 0;
+  background: rgba(0, 0, 0, 0.3);
+}
+.ql-toolbar.ql-snow .ql-stroke {
+  stroke: var(--muted) !important;
+}
+.ql-toolbar.ql-snow .ql-fill {
+  fill: var(--muted) !important;
+}
+.ql-toolbar.ql-snow .ql-picker-label {
+  color: var(--muted) !important;
+}
+.ql-toolbar.ql-snow button:hover .ql-stroke,
+.ql-toolbar.ql-snow .ql-picker-label:hover {
+  stroke: var(--text) !important;
+  color: var(--text) !important;
+}
+.ql-container.ql-snow {
+  border: 1px solid var(--border) !important;
+  border-top: none !important;
+  border-radius: 0 0 14px 14px;
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  min-height: 140px;
+}
+.ql-editor {
+  min-height: 120px;
+}
+.ql-editor.ql-blank::before {
+  color: var(--muted) !important;
+  font-style: normal !important;
+}
+.ql-snow .ql-picker-options {
+  background: #1a1f28 !important;
+  border-color: var(--border) !important;
+}
+.ql-snow .ql-picker-item {
+  color: var(--muted) !important;
+}
+.ql-snow .ql-picker-item:hover {
+  color: var(--text) !important;
+}
+
+/* ── LEI banner ── */
+.lei-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: rgba(124, 92, 255, 0.1);
+  border: 1px solid rgba(124, 92, 255, 0.25);
+  font-size: 13px;
+  color: var(--muted);
+  transition: background 0.2s;
+}
+.lei-banner:hover {
+  background: rgba(124, 92, 255, 0.18);
+  color: var(--text);
+}
+
+/* ── PDF upload area ── */
+.upload-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  border-radius: 14px;
+  border: 2px dashed var(--border);
+  background: rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  text-align: center;
+  transition:
+    border-color 0.2s,
+    background 0.2s;
+}
+.upload-area:hover {
+  border-color: var(--accent);
+  background: rgba(124, 92, 255, 0.05);
+}
+.upload-area.has-file {
+  border-color: var(--good);
+  border-style: solid;
+}

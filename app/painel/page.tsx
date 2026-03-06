@@ -100,6 +100,10 @@ export default function PainelPage() {
           </div>
         )}
       </div>
+
+      <a href="/LEI.pdf" target="_blank" rel="noopener noreferrer" className="lei-banner">
+        📋 <strong>Consulte a Lei Municipal de Inovação</strong> — Referência para entender regras e deveres
+      </a>
     </div>
   );
 }

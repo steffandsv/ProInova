@@ -111,6 +111,10 @@ export default function AdminPropostaAvaliarCMAA({ params }: { params: { id: str
           Protocolo: <strong>{data.id.split("-")[0].toUpperCase()}</strong> ({data.titulo})
         </p>
 
+        <a href="/LEI.pdf" target="_blank" rel="noopener noreferrer" className="lei-banner" style={{ marginBottom: 20 }}>
+          📋 <strong>Consulte a Lei Municipal de Inovação</strong> — Referência para avaliação pelo CMAA
+        </a>
+
         {pesos.length === 0 ? (
           <div className="card" style={{ borderColor: "var(--warn)" }}>
             <p className="p">O Edital não possui configuração de Pesos da Matriz. Apenas o parecer técnico será enviado.</p>

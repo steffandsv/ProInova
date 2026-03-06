@@ -152,6 +152,7 @@ model Proposta {
   orcamentoRateio    String          @db.Text
   ipConcorda         Boolean         @default(false)
   paginaPublicaPlano String          @db.Text
+  pdfPropostaUrl     String?         @db.VarChar(500)
 
   cronogramaJson     Json            // legado – mantido para compatibilidade
 
