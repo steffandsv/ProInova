@@ -9,11 +9,17 @@ function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim();
 }
 
+const CRON_LIMITS = {
+  entregavel: 500,
+  evidencia: 300,
+  criterioAceitacao: 500,
+} as const;
+
 const CronogramaItem = z.object({
   mes: z.number().int().min(1),
-  entregavel: z.string().min(10).max(2000),
-  evidencia: z.string().min(5).max(1000),
-  criterioAceitacao: z.string().min(10).max(2000),
+  entregavel: z.string().min(10).max(CRON_LIMITS.entregavel),
+  evidencia: z.string().min(5).max(CRON_LIMITS.evidencia),
+  criterioAceitacao: z.string().min(10).max(CRON_LIMITS.criterioAceitacao),
 });
 
 const EquipeMembroItem = z.object({
@@ -33,23 +39,42 @@ const EquipeMembroItem = z.object({
  * 1 token ≈ 2,10 caracteres → 134.400 chars total
  * System prompt + markdown overhead ≈ 8.400 chars (~4.000 tokens)
  * Disponível p/ conteúdo do usuário ≈ 126.000 chars (~60.000 tokens)
- * Distribuição por campo (10 rich-text + resumo + cronograma):
+ *
+ * Cronograma (12 meses × (500+300+500) = 15.600 chars)
+ * Equipe (~5 membros) ≈ 1.000 chars
+ * Sobram ~109.400 chars para campos de texto principais:
  */
 const FIELD_LIMITS = {
   titulo: 200,
   resumo: 2000,
   linhaTematica: 200,
-  problema: 15000,
-  publicoAlvo: 10000,
-  propostaValor: 15000,
-  solucao: 15000,
-  metodologia: 15000,
-  viabilidade: 12000,
-  riscos: 12000,
-  indicadores: 10000,
-  orcamentoRateio: 10000,
-  paginaPublicaPlano: 10000,
+  problema: 12000,
+  publicoAlvo: 8000,
+  propostaValor: 12000,
+  solucao: 12000,
+  metodologia: 12000,
+  viabilidade: 10000,
+  riscos: 10000,
+  indicadores: 8000,
+  orcamentoRateio: 8000,
+  paginaPublicaPlano: 8000,
 } as const;
+
+/** Contador de caracteres inline, vermelho se exceder limite */
+function CharCounter({ value, max }: { value: string; max: number }) {
+  const len = value.length;
+  const over = len > max;
+  return (
+    <div style={{
+      textAlign: "right", fontSize: 12, marginTop: 4, fontWeight: 500,
+      color: over ? "#f87171" : len > max * 0.9 ? "#fbbf24" : "var(--muted)",
+      transition: "color 0.2s",
+    }}>
+      {len.toLocaleString("pt-BR")} / {max.toLocaleString("pt-BR")} caracteres
+      {over && <span style={{ marginLeft: 6, fontWeight: 700 }}>⚠️ Excedido!</span>}
+    </div>
+  );
+}
 
 const PropostaSchema = z.object({
   editalId: z.string().min(1),
@@ -424,7 +449,8 @@ export default function NovaPropostaPage() {
           <div className="grid two" style={{ marginTop: 20 }}>
             <div className="row">
               <div className="label">Nome do Projeto</div>
-              <input className="input" value={state.titulo} onChange={(e) => set("titulo", e.target.value)} placeholder="Curto, forte e memorável..." />
+              <input className="input" value={state.titulo} onChange={(e) => set("titulo", e.target.value)} placeholder="Curto, forte e memorável..." style={{ borderColor: state.titulo.length > FIELD_LIMITS.titulo ? "var(--bad)" : undefined }} />
+              <CharCounter value={state.titulo} max={FIELD_LIMITS.titulo} />
             </div>
             <div className="row">
               <div className="label">Linha Temática</div>
@@ -433,13 +459,16 @@ export default function NovaPropostaPage() {
                 value={state.linhaTematica}
                 onChange={(e) => set("linhaTematica", e.target.value)}
                 placeholder="Exemplo: Saúde Digital, Educação Inclusiva"
+                style={{ borderColor: state.linhaTematica.length > FIELD_LIMITS.linhaTematica ? "var(--bad)" : undefined }}
               />
+              <CharCounter value={state.linhaTematica} max={FIELD_LIMITS.linhaTematica} />
             </div>
           </div>
 
           <div className="row" style={{ marginTop: 20 }}>
             <div className="label">Resumo Executivo (o famoso Elevator Pitch)</div>
-            <textarea className="input" style={{ minHeight: 100, padding: 14 }} value={state.resumo} onChange={(e) => set("resumo", e.target.value)} placeholder="Escreva um parágrafo claro sobre o que o projeto resolve e quem impacta. (Até 1.000 caracteres)" />
+            <textarea className="input" style={{ minHeight: 100, padding: 14, borderColor: state.resumo.length > FIELD_LIMITS.resumo ? "var(--bad)" : undefined }} value={state.resumo} onChange={(e) => set("resumo", e.target.value)} placeholder="Escreva um parágrafo claro sobre o que o projeto resolve e quem impacta." />
+            <CharCounter value={state.resumo} max={FIELD_LIMITS.resumo} />
           </div>
 
           <div className="row" style={{ marginTop: 20 }}>
@@ -546,48 +575,56 @@ export default function NovaPropostaPage() {
               <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: "0 0 6px" }}>Qual é o problema?</h3>
               <p className="p" style={{ margin: "0 0 10px", fontSize: 13 }}>Descreva o problema real que você observou. Traga dados, estatísticas ou relatos que comprovem que ele existe.</p>
               <RichEditor value={state.problema} onChange={(v) => set("problema", v)} placeholder="Quem sofre com isso hoje? Como você sabe que o problema existe?" />
+              <CharCounter value={state.problema} max={FIELD_LIMITS.problema} />
               {aiResult?.fieldHints?.problema && <div className="ai-field-hint">💡 <strong>Dica do Avaliador:</strong> {aiResult.fieldHints.problema}</div>}
             </div>
             <div>
               <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: "0 0 6px" }}>Quem é o público-alvo?</h3>
               <p className="p" style={{ margin: "0 0 10px", fontSize: 13 }}>Quantas pessoas são afetadas? Onde estão? Qual perfil (idade, localização, contexto)?</p>
               <RichEditor value={state.publicoAlvo} onChange={(v) => set("publicoAlvo", v)} placeholder="Tamanho estimado do público? Onde eles estão?" />
+              <CharCounter value={state.publicoAlvo} max={FIELD_LIMITS.publicoAlvo} />
               {aiResult?.fieldHints?.publicoAlvo && <div className="ai-field-hint">💡 <strong>Dica do Avaliador:</strong> {aiResult.fieldHints.publicoAlvo}</div>}
             </div>
             <div>
               <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: "0 0 6px" }}>Qual é a proposta de valor?</h3>
               <p className="p" style={{ margin: "0 0 10px", fontSize: 13 }}>O grande benefício que o projeto entrega. Como o mundo melhora quando isso estiver pronto?</p>
               <RichEditor value={state.propostaValor} onChange={(v) => set("propostaValor", v)} placeholder="Como o mundo melhora quando isso estiver pronto?" />
+              <CharCounter value={state.propostaValor} max={FIELD_LIMITS.propostaValor} />
               {aiResult?.fieldHints?.propostaValor && <div className="ai-field-hint">💡 <strong>Dica do Avaliador:</strong> {aiResult.fieldHints.propostaValor}</div>}
             </div>
             <div>
               <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: "0 0 6px" }}>Qual é a solução prática?</h3>
               <p className="p" style={{ margin: "0 0 10px", fontSize: 13 }}>O que exatamente a equipe vai construir? E o que NÃO vai construir (escopo negativo)?</p>
               <RichEditor value={state.solucao} onChange={(v) => set("solucao", v)} placeholder="O que exatamente a equipe vai construir (e o que NÃO vai)?" />
+              <CharCounter value={state.solucao} max={FIELD_LIMITS.solucao} />
               {aiResult?.fieldHints?.solucao && <div className="ai-field-hint">💡 <strong>Dica do Avaliador:</strong> {aiResult.fieldHints.solucao}</div>}
             </div>
             <div>
               <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: "0 0 6px" }}>Metodologia de execução</h3>
               <p className="p" style={{ margin: "0 0 10px", fontSize: 13 }}>Quais ferramentas, linguagens ou métodos serão usados? Como serão feitos testes com usuários reais?</p>
               <RichEditor value={state.metodologia} onChange={(v) => set("metodologia", v)} placeholder="Quais ferramentas serão usadas? Como testarão com usuários?" />
+              <CharCounter value={state.metodologia} max={FIELD_LIMITS.metodologia} />
               {aiResult?.fieldHints?.metodologia && <div className="ai-field-hint">💡 <strong>Dica do Avaliador:</strong> {aiResult.fieldHints.metodologia}</div>}
             </div>
             <div>
               <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: "0 0 6px" }}>Viabilidade e recursos</h3>
               <p className="p" style={{ margin: "0 0 10px", fontSize: 13 }}>A equipe tem os recursos humanos, técnicos e materiais necessários? Há dependências externas?</p>
               <RichEditor value={state.viabilidade} onChange={(v) => set("viabilidade", v)} placeholder="A equipe tem os recursos necessários? Alguma dependência externa?" />
+              <CharCounter value={state.viabilidade} max={FIELD_LIMITS.viabilidade} />
               {aiResult?.fieldHints?.viabilidade && <div className="ai-field-hint">💡 <strong>Dica do Avaliador:</strong> {aiResult.fieldHints.viabilidade}</div>}
             </div>
             <div>
               <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: "0 0 6px" }}>Riscos e como mitigá-los</h3>
               <p className="p" style={{ margin: "0 0 10px", fontSize: 13 }}>Cite pelo menos: 1 risco operacional, 1 risco de adoção/segurança, e como pretende reduzir cada um.</p>
               <RichEditor value={state.riscos} onChange={(v) => set("riscos", v)} placeholder="O que pode dar errado (Operacional, Segurança, Adesão) e como prevenir?" />
+              <CharCounter value={state.riscos} max={FIELD_LIMITS.riscos} />
               {aiResult?.fieldHints?.riscos && <div className="ai-field-hint">💡 <strong>Dica do Avaliador:</strong> {aiResult.fieldHints.riscos}</div>}
             </div>
             <div>
               <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: "0 0 6px" }}>Indicadores de sucesso (KPIs)</h3>
               <p className="p" style={{ margin: "0 0 10px", fontSize: 13 }}>Use números! Ex: &ldquo;Reduzir de 30 dias para 5 dias&rdquo;, &ldquo;De R$ 0 para R$ 10.000/mês&rdquo;, &ldquo;Atender 200 alunos&rdquo;.</p>
               <RichEditor value={state.indicadores} onChange={(v) => set("indicadores", v)} placeholder="Dica: De R$ X para R$ Y. De Z horas para W minutos. Métrica base e alvo." />
+              <CharCounter value={state.indicadores} max={FIELD_LIMITS.indicadores} />
               {aiResult?.fieldHints?.indicadores && <div className="ai-field-hint">💡 <strong>Dica do Avaliador:</strong> {aiResult.fieldHints.indicadores}</div>}
             </div>
           </div>
@@ -614,16 +651,19 @@ export default function NovaPropostaPage() {
                 <div className="grid two" style={{ gap: 16 }}>
                   <div className="row">
                     <div className="label">Entregável (O que fica pronto)</div>
-                    <input className="input" value={it.entregavel} onChange={(e) => updateCron(idx, { entregavel: e.target.value })} placeholder="Ex: Backend configurado e banco de dados" style={{ backgroundColor: "var(--bg)" }} />
+                    <input className="input" value={it.entregavel} onChange={(e) => updateCron(idx, { entregavel: e.target.value })} placeholder="Ex: Backend configurado e banco de dados" style={{ backgroundColor: "var(--bg)", borderColor: it.entregavel.length > CRON_LIMITS.entregavel ? "var(--bad)" : undefined }} />
+                    <CharCounter value={it.entregavel} max={CRON_LIMITS.entregavel} />
                   </div>
                   <div className="row">
                     <div className="label">Evidência Esperada (O que será provado)</div>
-                    <input className="input" value={it.evidencia} onChange={(e) => updateCron(idx, { evidencia: e.target.value })} placeholder="Ex: Link do repositório no GitHub" style={{ backgroundColor: "var(--bg)" }} />
+                    <input className="input" value={it.evidencia} onChange={(e) => updateCron(idx, { evidencia: e.target.value })} placeholder="Ex: Link do repositório no GitHub" style={{ backgroundColor: "var(--bg)", borderColor: it.evidencia.length > CRON_LIMITS.evidencia ? "var(--bad)" : undefined }} />
+                    <CharCounter value={it.evidencia} max={CRON_LIMITS.evidencia} />
                   </div>
                 </div>
                 <div className="row" style={{ marginTop: 16 }}>
                   <div className="label">Critério de Aceitação Técnica (Como validar que deu certo)</div>
-                  <input className="input" value={it.criterioAceitacao} onChange={(e) => updateCron(idx, { criterioAceitacao: e.target.value })} placeholder="Ex: API respondendo em menos de 200ms com 10 requisições simultâneas" style={{ backgroundColor: "var(--bg)" }} />
+                  <input className="input" value={it.criterioAceitacao} onChange={(e) => updateCron(idx, { criterioAceitacao: e.target.value })} placeholder="Ex: API respondendo em menos de 200ms com 10 requisições simultâneas" style={{ backgroundColor: "var(--bg)", borderColor: it.criterioAceitacao.length > CRON_LIMITS.criterioAceitacao ? "var(--bad)" : undefined }} />
+                  <CharCounter value={it.criterioAceitacao} max={CRON_LIMITS.criterioAceitacao} />
                 </div>
               </div>
             ))}
@@ -635,11 +675,13 @@ export default function NovaPropostaPage() {
               <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: "0 0 6px" }}>Plano de transparência pública</h3>
               <p className="p" style={{ margin: "0 0 10px", fontSize: 13 }}>Como o andamento do projeto será exposto publicamente mês a mês, sem revelar segredos industriais ou senhas?</p>
               <RichEditor value={state.paginaPublicaPlano} onChange={(v) => set("paginaPublicaPlano", v)} placeholder="Como o projeto pode ser exposto publicamente mês a mês (sem expor segredos industriais ou senhas)?" />
+              <CharCounter value={state.paginaPublicaPlano} max={FIELD_LIMITS.paginaPublicaPlano} />
             </div>
             <div>
               <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: "0 0 6px" }}>Orçamento e materiais extras</h3>
               <p className="p" style={{ margin: "0 0 10px", fontSize: 13 }}>Precisa de algum equipamento ou material que a prefeitura deva prover? Justifique a necessidade.</p>
               <RichEditor value={state.orcamentoRateio} onChange={(v) => set("orcamentoRateio", v)} placeholder="Precisa comprar algum equipamento específico que a prefeitura deva prover? Detalhe." />
+              <CharCounter value={state.orcamentoRateio} max={FIELD_LIMITS.orcamentoRateio} />
               {aiResult?.fieldHints?.orcamentoRateio && <div className="ai-field-hint">💡 <strong>Dica do Avaliador:</strong> {aiResult.fieldHints.orcamentoRateio}</div>}
             </div>
           </div>
