@@ -6,8 +6,12 @@ RUN npm ci
 
 FROM node:20-alpine AS builder
 WORKDIR /app
+# O Prisma requer openssl para ler e validar o schema
+RUN apk add --no-cache openssl
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# GERA O CLIENT DO PRISMA ANTES DO BUILD
+RUN npx prisma generate
 RUN npm run build
 
 FROM node:20-alpine AS runner
