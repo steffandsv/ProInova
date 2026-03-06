@@ -1,0 +1,286 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────
+
+enum Role {
+  PROPONENTE
+  TRIAGEM
+  EDUCACAO
+  CMAA
+  PREFEITO
+  ADMIN
+}
+
+enum Modalidade {
+  EDUCACAO
+  GERAL
+}
+
+enum EditalStatus {
+  RASCUNHO
+  ABERTO
+  ENCERRADO
+}
+
+enum PropostaStatus {
+  RASCUNHO
+  SUBMETIDA
+  EM_TRIAGEM
+  PARECER_EDUCACAO
+  AVALIACAO_CMAA
+  CLASSIFICADA
+  HOMOLOGADA
+  TERMO_OUTORGA
+  EM_EXECUCAO
+  SUSPENSA
+  CANCELADA
+  CONCLUIDA
+}
+
+enum AvaliacaoEtapa {
+  TRIAGEM
+  EDUCACAO
+  CMAA
+  PREFEITO
+}
+
+enum MarcoStatus {
+  PENDENTE
+  SUBMETIDO
+  VALIDADO
+  AJUSTE_SOLICITADO
+  REJEITADO
+}
+
+// ─── Tabela legada de munícipes (já existe no banco) ─────────────────
+
+model Municipe {
+  id        Int       @id @map("id")
+  cpf       String?   @db.VarChar(11)
+  nome      String    @db.VarChar(255)
+  telefone  String?   @db.VarChar(255)
+  email     String?   @db.VarChar(255)
+  data_nasc DateTime? @db.Date
+  rg        String?   @map("RG") @db.VarChar(255)
+  apagado   String?   @db.VarChar(50)
+  apagado_em DateTime?
+
+  @@map("municipes")
+  @@index([cpf])
+}
+
+// ─── Usuários da plataforma ──────────────────────────────────────────
+
+model User {
+  id           String    @id @default(cuid())
+  cpf          String    @unique @db.VarChar(11)
+  nome         String    @db.VarChar(255)
+  telefone     String?   @db.VarChar(255)
+  email        String?   @unique @db.VarChar(255)
+  dataNasc     DateTime? @db.Date
+  rg           String?   @db.VarChar(255)
+  role         Role      @default(PROPONENTE)
+  passwordHash String    @db.VarChar(255)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  propostas    Proposta[]
+  avaliacoes   Avaliacao[] @relation("avaliador")
+  auditLogs    AuditLog[]
+}
+
+// ─── Edital ──────────────────────────────────────────────────────────
+
+model Edital {
+  id          String       @id @default(cuid())
+  titulo      String       @db.VarChar(255)
+  descricao   String       @db.Text
+  modalidade  Modalidade
+  status      EditalStatus @default(RASCUNHO)
+  abreEm      DateTime
+  fechaEm     DateTime
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  config      EditalConfig?
+  propostas   Proposta[]
+}
+
+// ─── Configuração de edital (pesos, regras, parametrização) ──────────
+
+model EditalConfig {
+  id                String @id @default(cuid())
+  editalId          String @unique
+  linhasTematicas   Json   // string[] – linhas temáticas permitidas
+  pesosMatrizJson   Json   // { criterio: string, peso: number }[] – Anexo III
+  tetoMensal        Float  @default(1000)
+  duracaoMaxMeses   Int    @default(12)
+  regrasModalidade  Json?  // regras específicas (ProInova Educação vs Geral)
+  modelosAnexos     Json?  // URLs/nomes de templates de documentos
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  edital            Edital @relation(fields: [editalId], references: [id], onDelete: Cascade)
+}
+
+// ─── Proposta ────────────────────────────────────────────────────────
+
+model Proposta {
+  id                 String          @id @default(cuid())
+  editalId           String
+  proponenteId       String
+  titulo             String          @db.VarChar(255)
+  resumo             String          @db.VarChar(1000)
+  linhaTematica      String          @db.VarChar(100)
+  modalidade         Modalidade
+  duracaoMeses       Int
+  problema           String          @db.Text
+  publicoAlvo        String          @db.Text
+  propostaValor      String          @db.Text
+  solucao            String          @db.Text
+  metodologia        String          @db.Text
+  viabilidade        String          @db.Text
+  riscos             String          @db.Text
+  indicadores        String          @db.Text
+  orcamentoRateio    String          @db.Text
+  ipConcorda         Boolean         @default(false)
+  paginaPublicaPlano String          @db.Text
+
+  cronogramaJson     Json            // legado – mantido para compatibilidade
+
+  status             PropostaStatus  @default(RASCUNHO)
+  sigiloso           Boolean         @default(false) // Art. 19, parágrafo único
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  edital             Edital          @relation(fields: [editalId], references: [id])
+  proponente         User            @relation(fields: [proponenteId], references: [id])
+  avaliacoes         Avaliacao[]
+  equipe             EquipeMembro[]
+  marcos             Marco[]
+  termoOutorga       TermoOutorga?
+
+  @@index([editalId])
+  @@index([proponenteId])
+  @@index([status])
+}
+
+// ─── Membros da equipe do projeto (Anexo I §2) ───────────────────────
+
+model EquipeMembro {
+  id               String    @id @default(cuid())
+  propostaId       String
+  cpf              String    @db.VarChar(11)
+  nome             String    @db.VarChar(255)
+  dataNasc         DateTime? @db.Date
+  vinculoEstudantil String?  @db.VarChar(255)
+  ehMenor          Boolean   @default(false)
+  responsavelLegal String?   @db.VarChar(255) // nome do responsável, se menor
+  cpfResponsavel   String?   @db.VarChar(11)
+  anuenciaAnexada  Boolean   @default(false) // anuência formal do responsável
+  percentualRateio Float     @default(0) // % do valor da bolsa
+
+  proposta         Proposta  @relation(fields: [propostaId], references: [id], onDelete: Cascade)
+
+  @@index([propostaId])
+}
+
+// ─── Marcos mensais (normalização do cronograma – Art. 14) ───────────
+
+model Marco {
+  id                  String      @id @default(cuid())
+  propostaId          String
+  mes                 Int         // 1, 2, 3...
+  entregavel          String      @db.Text
+  evidenciaEsperada   String      @db.Text
+  criterioAceitacao   String      @db.Text
+  status              MarcoStatus @default(PENDENTE)
+  comentarioCoordenacao String?   @db.Text // feedback da coordenação
+  validadoEm          DateTime?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  proposta            Proposta    @relation(fields: [propostaId], references: [id], onDelete: Cascade)
+  evidencias          Evidencia[]
+
+  @@unique([propostaId, mes])
+  @@index([propostaId])
+}
+
+// ─── Evidências submetidas (vinculadas a marcos) ─────────────────────
+
+model Evidencia {
+  id          String   @id @default(cuid())
+  marcoId     String
+  tipo        String   @db.VarChar(50) // "LINK" | "ARQUIVO" | "TEXTO"
+  url         String?  @db.VarChar(2000) // URL ou path do arquivo
+  descricao   String   @db.Text
+  publica     Boolean  @default(true) // se aparece na Página Pública
+  createdAt   DateTime @default(now())
+
+  marco       Marco    @relation(fields: [marcoId], references: [id], onDelete: Cascade)
+
+  @@index([marcoId])
+}
+
+// ─── Avaliação (por etapa do workflow) ───────────────────────────────
+
+model Avaliacao {
+  id           String          @id @default(cuid())
+  propostaId   String
+  avaliadorId  String
+  etapa        AvaliacaoEtapa
+  parecer      String          @db.Text
+  notaJson     Json            // { criterio, nota, peso }[]
+  notaFinal    Float?
+  aprovado     Boolean         @default(false)
+  decididoEm   DateTime?
+  createdAt    DateTime        @default(now())
+
+  proposta     Proposta        @relation(fields: [propostaId], references: [id], onDelete: Cascade)
+  avaliador    User            @relation("avaliador", fields: [avaliadorId], references: [id])
+
+  @@index([propostaId])
+  @@index([avaliadorId])
+}
+
+// ─── Termo de Outorga (Art. 16) ──────────────────────────────────────
+
+model TermoOutorga {
+  id             String    @id @default(cuid())
+  propostaId     String    @unique
+  dadosJson      Json      // dados completos do termo preenchido
+  assinado       Boolean   @default(false)
+  urlDocumento   String?   @db.VarChar(2000) // PDF gerado ou uploaded
+  assinadoEm     DateTime?
+  createdAt      DateTime  @default(now())
+
+  proposta       Proposta  @relation(fields: [propostaId], references: [id], onDelete: Cascade)
+}
+
+// ─── Log de auditoria ────────────────────────────────────────────────
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String   @db.VarChar(100) // ex: "PROPOSTA_SUBMETIDA", "STATUS_ALTERADO"
+  entityType String   @db.VarChar(50)  // ex: "Proposta", "Marco", "Avaliacao"
+  entityId   String   @db.VarChar(100)
+  beforeJson Json?
+  afterJson  Json?
+  ip         String?  @db.VarChar(45)
+  createdAt  DateTime @default(now())
+
+  user       User?    @relation(fields: [userId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@index([createdAt])
+}
