@@ -412,46 +412,45 @@ export default function NovaPropostaPage() {
             Aqui é onde a inovação é detalhada. Seja claro, direto e traga evidências concretas. Respostas vagas dificultam a aprovação.
           </p>
 
-          <div className="grid two" style={{ gap: 24 }}>
-            <div className="row">
-              <div className="label">Problema (e evidências do problema)</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+            <div>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: "0 0 6px" }}>Qual é o problema?</h3>
+              <p className="p" style={{ margin: "0 0 10px", fontSize: 13 }}>Descreva o problema real que você observou. Traga dados, estatísticas ou relatos que comprovem que ele existe.</p>
               <RichEditor value={state.problema} onChange={(v) => set("problema", v)} placeholder="Quem sofre com isso hoje? Como você sabe que o problema existe?" />
             </div>
-            <div className="row">
-              <div className="label">Público-alvo (Tamanho e contexto)</div>
+            <div>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: "0 0 6px" }}>Quem é o público-alvo?</h3>
+              <p className="p" style={{ margin: "0 0 10px", fontSize: 13 }}>Quantas pessoas são afetadas? Onde estão? Qual perfil (idade, localização, contexto)?</p>
               <RichEditor value={state.publicoAlvo} onChange={(v) => set("publicoAlvo", v)} placeholder="Tamanho estimado do público? Onde eles estão?" />
             </div>
-          </div>
-
-          <div className="grid two" style={{ gap: 24, marginTop: 24 }}>
-            <div className="row">
-              <div className="label">Proposta de Valor (O grande benefício)</div>
+            <div>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: "0 0 6px" }}>Qual é a proposta de valor?</h3>
+              <p className="p" style={{ margin: "0 0 10px", fontSize: 13 }}>O grande benefício que o projeto entrega. Como o mundo melhora quando isso estiver pronto?</p>
               <RichEditor value={state.propostaValor} onChange={(v) => set("propostaValor", v)} placeholder="Como o mundo melhora quando isso estiver pronto?" />
             </div>
-            <div className="row">
-              <div className="label">Solução Prática</div>
+            <div>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: "0 0 6px" }}>Qual é a solução prática?</h3>
+              <p className="p" style={{ margin: "0 0 10px", fontSize: 13 }}>O que exatamente a equipe vai construir? E o que NÃO vai construir (escopo negativo)?</p>
               <RichEditor value={state.solucao} onChange={(v) => set("solucao", v)} placeholder="O que exatamente a equipe vai construir (e o que NÃO vai)?" />
             </div>
-          </div>
-
-          <div className="grid two" style={{ gap: 24, marginTop: 24 }}>
-            <div className="row">
-              <div className="label">Metodologia (Execução e validação)</div>
+            <div>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: "0 0 6px" }}>Metodologia de execução</h3>
+              <p className="p" style={{ margin: "0 0 10px", fontSize: 13 }}>Quais ferramentas, linguagens ou métodos serão usados? Como serão feitos testes com usuários reais?</p>
               <RichEditor value={state.metodologia} onChange={(v) => set("metodologia", v)} placeholder="Quais ferramentas serão usadas? Como testarão com usuários?" />
             </div>
-            <div className="row">
-              <div className="label">Viabilidade (Recursos)</div>
+            <div>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: "0 0 6px" }}>Viabilidade e recursos</h3>
+              <p className="p" style={{ margin: "0 0 10px", fontSize: 13 }}>A equipe tem os recursos humanos, técnicos e materiais necessários? Há dependências externas?</p>
               <RichEditor value={state.viabilidade} onChange={(v) => set("viabilidade", v)} placeholder="A equipe tem os recursos necessários? Alguma dependência externa?" />
             </div>
-          </div>
-
-          <div className="grid two" style={{ gap: 24, marginTop: 24 }}>
-            <div className="row">
-              <div className="label">Riscos e Mitigação</div>
+            <div>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: "0 0 6px" }}>Riscos e como mitigá-los</h3>
+              <p className="p" style={{ margin: "0 0 10px", fontSize: 13 }}>Cite pelo menos: 1 risco operacional, 1 risco de adoção/segurança, e como pretende reduzir cada um.</p>
               <RichEditor value={state.riscos} onChange={(v) => set("riscos", v)} placeholder="O que pode dar errado (Operacional, Segurança, Adesão) e como prevenir?" />
             </div>
-            <div className="row">
-              <div className="label">Indicadores de Sucesso (KPIs numéricos)</div>
+            <div>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: "0 0 6px" }}>Indicadores de sucesso (KPIs)</h3>
+              <p className="p" style={{ margin: "0 0 10px", fontSize: 13 }}>Use números! Ex: &ldquo;Reduzir de 30 dias para 5 dias&rdquo;, &ldquo;De R$ 0 para R$ 10.000/mês&rdquo;, &ldquo;Atender 200 alunos&rdquo;.</p>
               <RichEditor value={state.indicadores} onChange={(v) => set("indicadores", v)} placeholder="Dica: De R$ X para R$ Y. De Z horas para W minutos. Métrica base e alvo." />
             </div>
           </div>
@@ -493,13 +492,15 @@ export default function NovaPropostaPage() {
             ))}
           </div>
 
-          <div className="grid two" style={{ gap: 24, marginTop: 40, paddingTop: 32, borderTop: "1px dashed var(--border)" }}>
-            <div className="row">
-              <div className="label">Página Pública: Transparência</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 28, marginTop: 40, paddingTop: 32, borderTop: "1px dashed var(--border)" }}>
+            <div>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: "0 0 6px" }}>Plano de transparência pública</h3>
+              <p className="p" style={{ margin: "0 0 10px", fontSize: 13 }}>Como o andamento do projeto será exposto publicamente mês a mês, sem revelar segredos industriais ou senhas?</p>
               <RichEditor value={state.paginaPublicaPlano} onChange={(v) => set("paginaPublicaPlano", v)} placeholder="Como o projeto pode ser exposto publicamente mês a mês (sem expor segredos industriais ou senhas)?" />
             </div>
-            <div className="row">
-              <div className="label">Rateio Extra ou Materiais (Justifique)</div>
+            <div>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: "0 0 6px" }}>Orçamento e materiais extras</h3>
+              <p className="p" style={{ margin: "0 0 10px", fontSize: 13 }}>Precisa de algum equipamento ou material que a prefeitura deva prover? Justifique a necessidade.</p>
               <RichEditor value={state.orcamentoRateio} onChange={(v) => set("orcamentoRateio", v)} placeholder="Precisa comprar algum equipamento específico que a prefeitura deva prover? Detalhe." />
             </div>
           </div>
@@ -546,7 +547,7 @@ export default function NovaPropostaPage() {
               ) : (
                 <>
                   <span style={{ fontSize: 32, marginBottom: 12 }}>📄</span>
-                  <span className="p" style={{ margin: 0, fontWeight: 600 }}>Cique para Selecionar PDF Complementar</span>
+                  <span className="p" style={{ margin: 0, fontWeight: 600 }}>Clique para Selecionar PDF Complementar</span>
                   <span className="p" style={{ margin: 0, fontSize: 13, color: "var(--muted)", marginTop: 4 }}>Até 10 MB</span>
                 </>
               )}
