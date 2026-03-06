@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { z } from "zod";
 import RichEditor from "@/app/RichEditor";
@@ -145,6 +145,18 @@ function formatZodErrors(errors: z.ZodError): string {
 type PropostaInput = z.infer<typeof PropostaSchema>;
 
 export default function NovaPropostaPage() {
+  return (
+    <Suspense fallback={
+      <div className="section" style={{ textAlign: "center", paddingTop: 100 }}>
+        <span className="gradient-text" style={{ fontSize: 24, fontWeight: 700 }}>Carregando formulário...</span>
+      </div>
+    }>
+      <NovaPropostaInner />
+    </Suspense>
+  );
+}
+
+function NovaPropostaInner() {
   const [editais, setEditais] = useState<any[]>([]);
   const [fetchingEditais, setFetchingEditais] = useState(true);
 
