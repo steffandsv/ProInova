@@ -190,68 +190,14 @@ IMPORTANTE:
 - Comentários CURTOS, diretos e amigáveis (máximo 2 frases cada).`;
 }
 
-/* ─── API callers ─── */
+/* ─── API Streaming Orchestrator ─── */
 interface ChatMessage {
   role: "system" | "user";
   content: string;
 }
 
-async function callQwen(messages: ChatMessage[]): Promise<string> {
-  const key = process.env.QWEN_API_KEY;
-  if (!key) throw new Error("QWEN_API_KEY not configured");
-
-  const res = await fetch("https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "qwen-max",
-      messages,
-      temperature: 0.3,
-      max_tokens: 2000,
-      response_format: { type: "json_object" },
-    }),
-  });
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`Qwen API error ${res.status}: ${text.slice(0, 200)}`);
-  }
-
-  const json = await res.json();
-  return json.choices?.[0]?.message?.content || "";
-}
-
-async function callDeepSeek(messages: ChatMessage[]): Promise<string> {
-  const key = process.env.DEEPSEEK_API_KEY;
-  if (!key) throw new Error("DEEPSEEK_API_KEY not configured");
-
-  const res = await fetch("https://api.deepseek.com/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${key}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "deepseek-reasoner",
-      messages,
-      max_tokens: 2000,
-    }),
-  });
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`DeepSeek API error ${res.status}: ${text.slice(0, 200)}`);
-  }
-
-  const json = await res.json();
-  return json.choices?.[0]?.message?.content || "";
-}
-
 /* ─── Parse AI response ─── */
-function parseAnalysis(raw: string): AIAnalysisResult {
+export function parseAnalysis(raw: string): AIAnalysisResult {
   // Remover bloco <think> do DeepSeek Reasoner, caso exista
   let jsonStr = raw.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
 
@@ -292,8 +238,7 @@ function parseAnalysis(raw: string): AIAnalysisResult {
   }
 }
 
-/* ─── Main orchestrator ─── */
-export async function analyzeProposal(data: ProposalData): Promise<AIAnalysisResult> {
+export async function analyzeProposalStream(data: ProposalData): Promise<ReadableStream> {
   const markdown = buildMarkdownPayload(data);
   const systemPrompt = buildSystemPrompt();
   const messages: ChatMessage[] = [
@@ -301,19 +246,112 @@ export async function analyzeProposal(data: ProposalData): Promise<AIAnalysisRes
     { role: "user", content: `Analise a seguinte proposta de projeto:\n\n${markdown}` },
   ];
 
-  // Try Qwen first, fall back to DeepSeek
-  let rawResponse: string;
+  let res: Response;
+  let provider = "deepseek";
+
+  // Try DeepSeek Reasoner first
+  const dsKey = process.env.DEEPSEEK_API_KEY;
+  if (!dsKey) throw new Error("DEEPSEEK_API_KEY não configurada");
+
   try {
-    rawResponse = await callQwen(messages);
-  } catch (qwenError: any) {
-    console.warn("[AI Preview] Qwen failed, falling back to DeepSeek:", qwenError.message);
-    try {
-      rawResponse = await callDeepSeek(messages);
-    } catch (dsError: any) {
-      console.error("[AI Preview] DeepSeek also failed:", dsError.message);
-      throw new Error("Ambos os modelos de IA estão indisponíveis no momento. Tente novamente em alguns minutos.");
-    }
+    res = await fetch("https://api.deepseek.com/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${dsKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "deepseek-reasoner",
+        messages,
+        stream: true,
+        max_tokens: 2500,
+      }),
+    });
+    if (!res.ok) throw new Error(`DeepSeek Error ${res.status}: ${await res.text()}`);
+  } catch (error: any) {
+    console.warn("[AI Preview] DeepSeek falhou, tentando Qwen:", error.message);
+    provider = "qwen";
+    const qKey = process.env.QWEN_API_KEY;
+    if (!qKey) throw new Error("Ambas as IAs falharam (Qwen key não configurada).");
+
+    // Correção: Dashscope Intl URL
+    res = await fetch("https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${qKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "qwen-max",
+        messages,
+        stream: true,
+        temperature: 0.3,
+        max_tokens: 2500,
+      }),
+    });
+    if (!res.ok) throw new Error(`Qwen Error ${res.status}: ${await res.text()}`);
   }
 
-  return parseAnalysis(rawResponse);
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+
+  return new ReadableStream({
+    async start(controller) {
+      if (provider === "qwen") {
+        controller.enqueue(encoder.encode(`event: reasoning\ndata: ${JSON.stringify("Analisando proposta usando Qwen como modelo alternativo. Iniciando cálculos de impacto...")}\n\n`));
+      }
+
+      const reader = res.body?.getReader();
+      if (!reader) {
+        controller.close();
+        return;
+      }
+
+      let buffer = "";
+      let contentBuffer = "";
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+
+          for (const line of lines) {
+            if (line.startsWith("data: ") && !line.includes("[DONE]")) {
+              try {
+                const dataStr = line.slice(6).trim();
+                if (!dataStr) continue;
+                const json = JSON.parse(dataStr);
+                const delta = json.choices[0]?.delta;
+                
+                if (delta?.reasoning_content) {
+                  controller.enqueue(encoder.encode(`event: reasoning\ndata: ${JSON.stringify(delta.reasoning_content)}\n\n`));
+                }
+                
+                // Qwen fake reasoning based on content arrival
+                if (provider === "qwen" && delta?.content && contentBuffer.length < 50) {
+                     controller.enqueue(encoder.encode(`event: reasoning\ndata: ${JSON.stringify(".\n")}\n\n`));
+                }
+
+                if (delta?.content) {
+                  contentBuffer += delta.content;
+                }
+              } catch (e) {
+                // Ignore parse errors for incomplete chunks
+              }
+            }
+          }
+        }
+
+        // Fim da Stream: parse no resultado final
+        try {
+          const finalResult = parseAnalysis(contentBuffer);
+          controller.enqueue(encoder.encode(`event: result\ndata: ${JSON.stringify(finalResult)}\n\n`));
+        } catch (parseErr: any) {
+          controller.enqueue(encoder.encode(`event: error\ndata: ${JSON.stringify(parseErr.message)}\n\n`));
+        }
+        controller.close();
+      } catch (err: any) {
+        controller.enqueue(encoder.encode(`event: error\ndata: ${JSON.stringify(err.message)}\n\n`));
+        controller.close();
+      }
+    },
+  });
 }

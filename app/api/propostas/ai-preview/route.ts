@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
-import { analyzeProposal } from "@/lib/ai-preview";
+import { analyzeProposalStream } from "@/lib/ai-preview";
 import { z } from "zod";
 
 const CronogramaItemSchema = z.object({
@@ -57,9 +57,15 @@ export async function POST(req: Request) {
       );
     }
 
-    const analysis = await analyzeProposal(parsed.data);
+    const stream = await analyzeProposalStream(parsed.data);
 
-    return NextResponse.json({ ok: true, analysis });
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+      },
+    });
   } catch (err: any) {
     console.error("[AI Preview Route]", err);
     return NextResponse.json(

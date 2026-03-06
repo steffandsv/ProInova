@@ -96,6 +96,7 @@ export default function NovaPropostaPage() {
 
   /* ─── AI Preview state ─── */
   const [aiLoading, setAiLoading] = useState(false);
+  const [aiReasoningText, setAiReasoningText] = useState("");
   const [aiResult, setAiResult] = useState<any>(null);
   const [aiError, setAiError] = useState<string | null>(null);
 
@@ -226,32 +227,81 @@ export default function NovaPropostaPage() {
 
   /* ─── AI Preview ─── */
   async function submitToAI() {
-    setAiError(null);
-    setAiResult(null);
     const parsed = PropostaSchema.safeParse(state);
     if (!parsed.success) {
-      setAiError(
-        parsed.error.issues[0]?.message ||
-          "Preencha todos os campos obrigatórios antes de solicitar a análise da I.A."
-      );
+      setMsg("Preencha todos os campos corretamente antes de solicitar a análise. Role a página para cima e confira os avisos em vermelho.");
       return;
     }
     setAiLoading(true);
+    setAiError("");
+    setAiResult(null);
+    setAiReasoningText("");
+
     try {
       const res = await fetch("/api/propostas/ai-preview", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(parsed.data),
       });
-      const json = await res.json();
-      if (!res.ok || !json.ok) {
-        setAiError(json?.message || "Erro ao solicitar análise da I.A.");
-      } else {
-        setAiResult(json.analysis);
+
+      if (!res.ok) {
+        setAiError("A IA não conseguiu processar sua requisição no momento.");
+        setAiLoading(false);
+        return;
       }
-    } catch {
-      setAiError("Falha de rede ao solicitar análise da I.A. Tente novamente.");
-    } finally {
+
+      const reader = res.body?.getReader();
+      const decoder = new TextDecoder("utf-8");
+      
+      if (!reader) {
+        setAiError("Falha ao ler o fluxo de dados da IA.");
+        setAiLoading(false);
+        return;
+      }
+
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop() || "";
+
+        for (const part of parts) {
+          const lines = part.split("\n");
+          let eventType = "message";
+          let dataStr = "";
+
+          for (const line of lines) {
+            if (line.startsWith("event:")) {
+              eventType = line.substring(6).trim();
+            } else if (line.startsWith("data:")) {
+              dataStr += line.substring(5).trim();
+            }
+          }
+
+          if (dataStr) {
+            try {
+              const parsedData = JSON.parse(dataStr);
+              if (eventType === "reasoning") {
+                setAiReasoningText((prev) => prev + parsedData);
+              } else if (eventType === "result") {
+                setAiResult(parsedData);
+              } else if (eventType === "error") {
+                setAiError(parsedData);
+              }
+            } catch (e) {
+              // Ignore invalid JSON inside stream chunks
+            }
+          }
+        }
+      }
+
+      setAiLoading(false);
+    } catch (err: any) {
+      setAiError("Falha na comunicação com os servidores de Inteligência Artificial.");
       setAiLoading(false);
     }
   }
@@ -569,18 +619,32 @@ export default function NovaPropostaPage() {
             </button>
 
             {/* AI Inline Result area */}
-            {aiLoading && (
-              <div style={{ textAlign: "center", padding: "40px 0", background: "rgba(0,0,0,0.2)", borderRadius: 16, border: "1px dashed var(--border)" }}>
-                <div className="ai-loading-spinner" />
-                <p className="p" style={{ marginTop: 20, fontSize: 16, fontWeight: 600 }}>
-                  🧠 A I.A. está analisando sua proposta...
-                </p>
-                <p className="p" style={{ fontSize: 13, color: "var(--muted)" }}>
-                  Isso pode levar até 30 segundos
-                </p>
-              </div>
-            )}
+            {/* LOADING STATE - STREAMING REASONER */}
+          {aiLoading && (
+            <div className="card" style={{ marginTop: 24, textAlign: "center", animation: "fadeIn 0.4s" }}>
+              <div className="ai-spinner" style={{ margin: "0 auto 20px" }}></div>
+              <h3 className="h3" style={{ marginBottom: 14 }}>
+                <span className="gradient-text">A I.A. está raciocinando...</span>
+              </h3>
+              <p className="p" style={{ maxWidth: 600, margin: "0 auto", color: "var(--muted)" }}>
+                Isso pode levar de 15 a 30 segundos. Estamos lendo cada detalhe da sua proposta para garantir que ela atenda aos padrões da Inovação Municipal.
+              </p>
 
+              {aiReasoningText && (
+                <div style={{ marginTop: 24, background: "rgba(255,255,255,0.03)", padding: 20, borderRadius: 16, border: "1px solid rgba(255,255,255,0.05)", textAlign: "left", display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                     <span style={{ fontSize: 20 }}>🧠</span>
+                     <strong style={{ fontSize: 13, textTransform: "uppercase", letterSpacing: 1, color: "var(--muted)" }}>Pensamento da Máquina</strong>
+                  </div>
+                  <div className="ai-reasoner-text">
+                    {aiReasoningText}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* VERDICT MODAL */}
             {!aiLoading && aiError && (
               <div style={{ textAlign: "center", padding: "40px 0", background: "rgba(239, 68, 68, 0.1)", borderRadius: 16, border: "1px solid rgba(239, 68, 68, 0.3)" }}>
                 <span style={{ fontSize: 48, display: "block", marginBottom: 16 }}>😞</span>
@@ -674,17 +738,31 @@ export default function NovaPropostaPage() {
               </div>
             )}
 
-            {/* FINAL SUBMIT BUTTON */}
-            <button
-              className="cta-btn cta-btn--ghost"
-              onClick={submit}
-              disabled={loading || editais.length === 0 || !aiResult}
-              style={{ width: "100%", justifyContent: "center", padding: "16px", fontSize: 16, opacity: !aiResult ? 0.6 : 1 }}
-            >
-              {loading ? "Processando envio..." : 
-               !aiResult ? "Enviar Proposta (Submeta a análise prévia primeiro para desbloquear)" : 
-               "🚀 Enviar Proposta Direto ao Comitê"}
-            </button>
+            {/* CONTEÚDO FINAL APÓS IA */}
+            {(!aiLoading && (aiResult || aiError)) && (
+              <div className="card" style={{ marginTop: 24, textAlign: "center", animation: "slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1)" }}>
+                
+                {aiError && (
+                  <div style={{ marginBottom: 20 }}>
+                    <p className="p" style={{ color: "var(--warn)", fontWeight: "bold" }}>A Inteligência Artificial indisponibilizou a análise no momento.</p>
+                    <p className="p" style={{ fontSize: 13, color: "var(--muted)" }}>Você pode prosseguir com a submissão normalmente sem a opinião prévia consultiva.</p>
+                  </div>
+                )}
+
+                <h3 className="h3" style={{ marginBottom: 14 }}>Tudo pronto!</h3>
+                <p className="p">Sua proposta está pronta para ser enviada para a verdadeira comissão avaliadora.</p>
+
+                <button
+                  type="button"
+                  className="btn btn-submit"
+                  onClick={submit}
+                  disabled={loading || (!aiResult && !aiError)}
+                  style={{ padding: "16px 32px", fontSize: 16, marginTop: 14 }}
+                >
+                  {loading ? "Enviando Proposta Oficial..." : (aiError ? "Finalizar sem Análise Prévia" : "Enviar Proposta Oficial para o Comitê")}
+                </button>
+              </div>
+            )}
           </div>
 
           {msg && (
