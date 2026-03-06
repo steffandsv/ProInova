@@ -5,8 +5,8 @@ import prisma from "@/lib/prisma";
 // GET: lista marcos validados aptos para pagamento
 export async function GET(request: Request) {
   try {
-    const session = await requireAuth(request);
-    if (!["ADMIN"].includes(session.role)) {
+    const session = requireAuth(request);
+    if (session.role !== "ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -17,10 +17,7 @@ export async function GET(request: Request) {
       where: { status: "VALIDADO" },
       include: {
         proposta: {
-          select: {
-            id: true,
-            titulo: true,
-            modalidade: true,
+          include: {
             proponente: { select: { nome: true, cpf: true } },
             equipe: {
               select: { nome: true, cpf: true, percentualRateio: true },
@@ -81,7 +78,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       ok: true,
       totalMarcos: lote.length,
-      valorTotal: lote.reduce((acc, l) => acc + l.valorMensal, 0),
+      valorTotal: lote.reduce((acc: number, l) => acc + l.valorMensal, 0),
       data: lote,
     });
   } catch (error: any) {

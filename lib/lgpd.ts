@@ -30,9 +30,9 @@ export function redactMinorData(membro: PublicMembro): PublicMembro {
  * Removes internal fields and sensitive data.
  */
 export function sanitizeForPublic<T extends Record<string, unknown>>(
-  data: T,
-  sigiloso: boolean
+  data: T
 ): Partial<T> {
+  const sigiloso = !!(data as any).sigiloso;
   // Always remove these fields from public views
   const alwaysRemove = [
     "passwordHash", "cpf", "cpfResponsavel", "ip",

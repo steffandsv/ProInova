@@ -6,12 +6,13 @@ const COOKIE_NAME = "proinova_session";
 
 export type SessionPayload = {
   sub: string; // user id
+  userId: string; // alias for sub (convenience)
   role: string;
   cpf: string;
   nome: string;
 };
 
-export function signSession(payload: SessionPayload): string {
+export function signSession(payload: Omit<SessionPayload, "userId">): string {
   const secret = process.env.JWT_SECRET;
   if (!secret) throw new Error("JWT_SECRET não configurado");
   return jwt.sign(payload, secret, { expiresIn: "7d" });
@@ -33,6 +34,10 @@ export function clearSessionCookie() {
   jar.set(COOKIE_NAME, "", { httpOnly: true, path: "/", maxAge: 0 });
 }
 
+/**
+ * Read session from next/headers cookies() — for Server Components / Route Handlers
+ * that DON'T receive a Request object.
+ */
 export function readSession(): SessionPayload | null {
   const secret = process.env.JWT_SECRET;
   if (!secret) return null;
@@ -40,15 +45,38 @@ export function readSession(): SessionPayload | null {
   const token = jar.get(COOKIE_NAME)?.value;
   if (!token) return null;
   try {
-    return jwt.verify(token, secret) as SessionPayload;
+    const raw = jwt.verify(token, secret) as any;
+    return { ...raw, userId: raw.sub };
   } catch {
     return null;
   }
 }
 
-export function requireAuth(): SessionPayload {
-  const session = readSession();
-  if (!session) throw new Error("Não autenticado.");
+/**
+ * Read session from a raw Request's Cookie header.
+ * Used by API routes that receive the Request object.
+ */
+function readSessionFromRequest(request: Request): SessionPayload | null {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) return null;
+  const cookieHeader = request.headers.get("cookie") || "";
+  const match = cookieHeader.match(new RegExp(`${COOKIE_NAME}=([^;]+)`));
+  if (!match) return null;
+  try {
+    const raw = jwt.verify(match[1], secret) as any;
+    return { ...raw, userId: raw.sub };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * requireAuth() — no args → reads from next/headers (Server Components)
+ * requireAuth(request) — reads from Request cookie header (API routes)
+ */
+export function requireAuth(request?: Request): SessionPayload {
+  const session = request ? readSessionFromRequest(request) : readSession();
+  if (!session) throw new Error("No session");
   return session;
 }
 
@@ -68,3 +96,4 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
   const pepper = process.env.PASSWORD_PEPPER || "";
   return bcrypt.compare(password + pepper, hash);
 }
+

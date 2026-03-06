@@ -5,7 +5,7 @@ import { PropostaStatus } from "@prisma/client";
 
 export async function GET(request: Request) {
   try {
-    const session = await requireAuth(request);
+    const session = requireAuth(request);
     if (!["ADMIN", "TRIAGEM", "EDUCACAO", "CMAA", "PREFEITO"].includes(session.role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

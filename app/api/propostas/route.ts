@@ -4,6 +4,28 @@ import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
 import { z } from "zod";
 
+// GET: lista propostas do proponente autenticado
+export async function GET(req: Request) {
+  try {
+    const session = requireAuth(req);
+    const propostas = await prisma.proposta.findMany({
+      where: { proponenteId: session.sub },
+      select: {
+        id: true,
+        titulo: true,
+        status: true,
+        modalidade: true,
+        createdAt: true,
+        duracaoMeses: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    return NextResponse.json({ ok: true, data: propostas });
+  } catch (err: any) {
+    return NextResponse.json({ ok: false, error: err.message }, { status: 401 });
+  }
+}
+
 const CronogramaItemSchema = z.object({
   mes: z.number().int().min(1),
   entregavel: z.string().min(10),

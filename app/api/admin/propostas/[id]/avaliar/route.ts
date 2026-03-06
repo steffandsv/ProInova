@@ -2,17 +2,16 @@ import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
-import { findTransition, getAvailableTransitions, WORKFLOW_TRANSITIONS } from "@/lib/workflow";
-import { PropostaStatus, Role } from "@prisma/client";
+import { findTransition, getAvailableTransitions } from "@/lib/workflow";
+import { PropostaStatus, Role, AvaliacaoEtapa } from "@prisma/client";
 
 export async function POST(request: Request, { params }: { params: { id: string } }) {
   try {
-    const session = await requireAuth(request);
+    const session = requireAuth(request);
     const propostaId = params.id;
     const body = await request.json();
 
-    // The user wants to transition from currentStatus to nextStatus
-    const { action, nextStatus, parecerTexto, notaFinal, aprovado } = body;
+    const { nextStatus, parecerTexto, notaFinal, aprovado } = body;
 
     const proposta = await prisma.proposta.findUnique({
       where: { id: propostaId }
@@ -33,23 +32,21 @@ export async function POST(request: Request, { params }: { params: { id: string 
       const allowed = getAvailableTransitions(currentStatus, userRole, proposta.modalidade);
       return NextResponse.json({ 
         message: "Transição inválida ou não permitida para o seu perfil.", 
-        allowed: allowed.map(a => a.to) 
+        allowed: allowed.map((a: any) => a.to) 
       }, { status: 403 });
     }
 
     // 2) If Valid, we might need to save an Avaliacao object
-    // Depending on the role or the current status, we create a record in Avaliacao table.
     let avaliacaoId: string | undefined;
 
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: any) => {
       // Create Avaliacao if provided
       if (parecerTexto || notaFinal !== undefined) {
-        // Enforce the corresponding etapa
-        let etapa: any = "TRIAGEM"; // fallback
-        if (currentStatus === "EM_TRIAGEM") etapa = "TRIAGEM";
+        // Determine etapa based on current status
+        let etapa: AvaliacaoEtapa = "TRIAGEM";
         if (currentStatus === "PARECER_EDUCACAO") etapa = "EDUCACAO";
-        if (currentStatus === "AVALIACAO_CMAA") etapa = "CMAA";
-        if (currentStatus === "CLASSIFICADA" && targetStatus === "HOMOLOGADA") etapa = "PREFEITO";
+        else if (currentStatus === "AVALIACAO_CMAA") etapa = "CMAA";
+        else if (currentStatus === "CLASSIFICADA" && targetStatus === "HOMOLOGADA") etapa = "PREFEITO";
 
         const evalRecord = await tx.avaliacao.create({
           data: {
@@ -58,7 +55,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
             etapa,
             parecer: parecerTexto || "",
             notaJson: body.notaJson || [],
-            notaFinal: notaFinal,
+            notaFinal: notaFinal !== undefined ? notaFinal : null,
             aprovado: aprovado ?? true,
           }
         });

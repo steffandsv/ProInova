@@ -6,7 +6,7 @@ import { Role } from "@prisma/client";
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
-    const session = await requireAuth(request);
+    const session = requireAuth(request);
     if (!["ADMIN", "TRIAGEM", "EDUCACAO", "CMAA", "PREFEITO"].includes(session.role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -30,16 +30,23 @@ export async function GET(request: Request, { params }: { params: { id: string }
           },
           orderBy: { createdAt: "desc" }
         },
-        AuditLog: {
-          where: { action: { startsWith: "WORKFLOW_" } },
-          orderBy: { createdAt: "desc" }
-        }
       },
     });
 
     if (!proposta) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
+
+    // AuditLog is NOT a direct relation on Proposta — query separately
+    const auditLogs = await prisma.auditLog.findMany({
+      where: {
+        entityType: "Proposta",
+        entityId: params.id,
+        action: { startsWith: "WORKFLOW_" },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    });
 
     // Determine available transitions for the current user
     const userRole = session.role as Role;
@@ -49,6 +56,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       ok: true, 
       data: {
         ...proposta,
+        AuditLog: auditLogs,
         availableTransitions
       }
     });
