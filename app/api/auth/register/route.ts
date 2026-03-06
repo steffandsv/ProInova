@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { hashPassword, setSessionCookie, signSession } from "@/lib/auth";
+import { hashPassword, signSession } from "@/lib/auth";
 import { isValidCPF, onlyDigits } from "@/lib/cpf";
 
 export async function POST(req: Request) {
@@ -30,14 +30,23 @@ export async function POST(req: Request) {
       nome: mun.nome,
       telefone: mun.telefone,
       email: email || null,
-      dataNasc: mun.data_nasc ? mun.data_nasc : null,
+      dataNasc: mun.data_nasc ?? null,
       rg: mun.rg,
       passwordHash,
     },
   });
 
   const token = signSession({ sub: user.id, role: user.role, cpf: user.cpf, nome: user.nome });
-  setSessionCookie(token);
 
-  return NextResponse.json({ ok: true });
+  // Set cookie directly on the response
+  const response = NextResponse.json({ ok: true });
+  response.cookies.set("proinova_session", token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 7,
+  });
+
+  return response;
 }

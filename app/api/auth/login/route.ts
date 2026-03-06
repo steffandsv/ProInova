@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { setSessionCookie, signSession, verifyPassword } from "@/lib/auth";
+import { signSession, verifyPassword } from "@/lib/auth";
 import { isValidCPF, onlyDigits } from "@/lib/cpf";
 
 export async function POST(req: Request) {
@@ -18,7 +18,16 @@ export async function POST(req: Request) {
   if (!ok) return NextResponse.json({ message: "Credenciais inválidas." }, { status: 401 });
 
   const token = signSession({ sub: user.id, role: user.role, cpf: user.cpf, nome: user.nome });
-  setSessionCookie(token);
 
-  return NextResponse.json({ ok: true });
+  // Set cookie directly on the response (cookies() from next/headers is unreliable in POST handlers)
+  const response = NextResponse.json({ ok: true });
+  response.cookies.set("proinova_session", token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 7, // 7 days
+  });
+
+  return response;
 }
