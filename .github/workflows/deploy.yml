@@ -40,7 +40,7 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           port: ${{ secrets.VPS_PORT }}
-          key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          password: ${{ secrets.VPS_PASSWORD }}
           script: |
             set -e
             APP_DIR="${{ secrets.VPS_APP_DIR }}"
@@ -56,7 +56,7 @@ jobs:
                 env_file:
                   - .env
                 ports:
-                  - "3000:3000"
+                  - "4007:3000"
                 healthcheck:
                   test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
                   interval: 30s
@@ -69,7 +69,7 @@ jobs:
             DATABASE_URL=${{ secrets.DATABASE_URL }}
             JWT_SECRET=${{ secrets.JWT_SECRET }}
             PASSWORD_PEPPER=${{ secrets.PASSWORD_PEPPER }}
-            APP_NAME=${{ secrets.APP_NAME }}
+            APP_NAME="${{ secrets.APP_NAME }}"
             PUBLIC_BASE_URL=${{ secrets.PUBLIC_BASE_URL }}
             NODE_ENV=production
             ENV
