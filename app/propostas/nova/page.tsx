@@ -46,7 +46,6 @@ const PropostaSchema = z.object({
   ipConcorda: z.boolean().refine((v) => v === true, "Você precisa concordar com IP/confidencialidade"),
   cronograma: z.array(CronogramaItem).min(1),
   equipe: z.array(EquipeMembroItem).min(1),
-  pdfPropostaUrl: z.string().optional(),
 });
 
 type PropostaInput = z.infer<typeof PropostaSchema>;
@@ -90,7 +89,6 @@ export default function NovaPropostaPage() {
         percentualRateio: 100,
       },
     ],
-    pdfPropostaUrl: "",
   });
 
   const [msg, setMsg] = useState<string | null>(null);
@@ -100,12 +98,6 @@ export default function NovaPropostaPage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResult, setAiResult] = useState<any>(null);
   const [aiError, setAiError] = useState<string | null>(null);
-  const [showAiModal, setShowAiModal] = useState(false);
-
-  /* ─── PDF upload state ─── */
-  const [pdfFile, setPdfFile] = useState<File | null>(null);
-  const [pdfUploading, setPdfUploading] = useState(false);
-  const [pdfUploaded, setPdfUploaded] = useState(false);
 
   useEffect(() => {
     fetch("/api/editais/abertos")
@@ -197,29 +189,6 @@ export default function NovaPropostaPage() {
     }));
   }
 
-  async function handlePdfUpload(file: File) {
-    setPdfFile(file);
-    setPdfUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch("/api/propostas/upload", { method: "POST", body: formData });
-      const json = await res.json();
-      if (res.ok && json.url) {
-        set("pdfPropostaUrl", json.url);
-        setPdfUploaded(true);
-      } else {
-        setMsg(json.message || "Erro ao enviar PDF.");
-        setPdfFile(null);
-      }
-    } catch {
-      setMsg("Falha de rede ao enviar PDF.");
-      setPdfFile(null);
-    } finally {
-      setPdfUploading(false);
-    }
-  }
-
   async function submit() {
     setMsg(null);
     const parsed = PropostaSchema.safeParse(state);
@@ -263,7 +232,6 @@ export default function NovaPropostaPage() {
       return;
     }
     setAiLoading(true);
-    setShowAiModal(true);
     try {
       const res = await fetch("/api/propostas/ai-preview", {
         method: "POST",
@@ -554,44 +522,7 @@ export default function NovaPropostaPage() {
             <h2 className="h2" style={{ margin: 0 }}>5. Finalização</h2>
           </div>
 
-          <div style={{ marginBottom: 32 }}>
-            <div className="label" style={{ fontSize: 14, color: "var(--text)", marginBottom: 8 }}>Anexo em PDF (Opcional)</div>
-            <p className="p" style={{ fontSize: 13, marginBottom: 16 }}>
-              Se tiver um projeto arquitetônico, diagramas ou slides adicionais, anexe aqui. Opcional caso já tenha preenchido tudo acima.
-            </p>
-            <label className={`panel-card ${pdfFile ? "has-file" : ""}`} htmlFor="pdf-upload-input" style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: 32, border: "2px dashed var(--border)", borderRadius: 16, cursor: "pointer", background: "rgba(255,255,255,0.02)", transition: "all 0.2s" }}>
-              <input
-                id="pdf-upload-input"
-                type="file"
-                accept=".pdf"
-                style={{ display: "none" }}
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    if (file.size > 10 * 1024 * 1024) {
-                      setMsg("O PDF deve ter no máximo 10 MB.");
-                      return;
-                    }
-                    handlePdfUpload(file);
-                  }
-                }}
-              />
-              {pdfUploading ? (
-                <span className="p" style={{ margin: 0, fontWeight: 600 }}>Enviando PDF...</span>
-              ) : pdfFile ? (
-                <>
-                  <span style={{ fontSize: 32, marginBottom: 8 }}>✅</span>
-                  <span className="p" style={{ margin: 0, fontWeight: 600, color: "var(--good)" }}>{pdfFile.name} (Salvo)</span>
-                </>
-              ) : (
-                <>
-                  <span style={{ fontSize: 32, marginBottom: 12 }}>📄</span>
-                  <span className="p" style={{ margin: 0, fontWeight: 600 }}>Clique para Selecionar PDF Complementar</span>
-                  <span className="p" style={{ margin: 0, fontSize: 13, color: "var(--muted)", marginTop: 4 }}>Até 10 MB</span>
-                </>
-              )}
-            </label>
-          </div>
+          <div style={{ marginBottom: 32 }} />
 
           {/* CHECKLIST DE GUARDRAILS */}
           {scoreHints.length > 0 && (
@@ -621,8 +552,8 @@ export default function NovaPropostaPage() {
             </div>
           </label>
 
-          {/* SUBMIT BUTTONS */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {/* SUBMIT BUTTONS E PREVIEW INLINE */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
             <button
               className="cta-btn cta-btn--primary"
               onClick={submitToAI}
@@ -631,56 +562,10 @@ export default function NovaPropostaPage() {
             >
               {aiLoading ? "🧠 Analisando com I.A..." : "🤖 Submeter ao Analista I.A."}
             </button>
-            <button
-              className="cta-btn cta-btn--ghost"
-              onClick={submit}
-              disabled={loading || editais.length === 0}
-              style={{ width: "100%", justifyContent: "center", padding: "16px", fontSize: 16 }}
-            >
-              {loading ? "Processando envio..." : "🚀 Enviar Proposta Direto ao Comitê"}
-            </button>
-          </div>
 
-          {aiError && !showAiModal && (
-            <div style={{ marginTop: 16, textAlign: "center", padding: "12px 16px", borderRadius: 10, background: "rgba(139, 92, 246, 0.1)", color: "#c4b5fd", border: "1px solid rgba(139, 92, 246, 0.3)" }}>
-              {aiError}
-            </div>
-          )}
-
-          {msg && (
-            <div style={{ marginTop: 16, textAlign: "center", padding: "12px 16px", borderRadius: 10, background: "rgba(239, 68, 68, 0.1)", color: "#fca5a5", border: "1px solid rgba(239, 68, 68, 0.3)" }}>
-              {msg}
-            </div>
-          )}
-          {editais.length === 0 && (
-            <div style={{ marginTop: 16, textAlign: "center", color: "var(--warn)", fontSize: 14 }}>
-              Nenhum edital está aberto para submissão no momento.
-            </div>
-          )}
-        </section>
-
-      </div>
-
-      {/* ═══════════════════════════════════════════════════ */}
-      {/* AI PREVIEW MODAL                                   */}
-      {/* ═══════════════════════════════════════════════════ */}
-      {showAiModal && (
-        <div className="ai-modal-overlay" onClick={() => { if (!aiLoading) setShowAiModal(false); }}>
-          <div className="ai-modal" onClick={(e) => e.stopPropagation()}>
-            {/* Header */}
-            <div style={{ textAlign: "center", marginBottom: 32 }}>
-              <span style={{ fontSize: 48, display: "block", marginBottom: 12 }}>🤖</span>
-              <h2 className="h2" style={{ margin: 0, fontSize: 24 }}>
-                Análise do <span className="gradient-text">Analista I.A.</span>
-              </h2>
-              <p className="p" style={{ margin: "8px 0 0", fontSize: 14 }}>
-                Prévia inteligente baseada na Lei Municipal de Inovação
-              </p>
-            </div>
-
-            {/* Loading state */}
+            {/* AI Inline Result area */}
             {aiLoading && (
-              <div style={{ textAlign: "center", padding: "60px 0" }}>
+              <div style={{ textAlign: "center", padding: "40px 0", background: "rgba(0,0,0,0.2)", borderRadius: 16, border: "1px dashed var(--border)" }}>
                 <div className="ai-loading-spinner" />
                 <p className="p" style={{ marginTop: 20, fontSize: 16, fontWeight: 600 }}>
                   🧠 A I.A. está analisando sua proposta...
@@ -691,25 +576,36 @@ export default function NovaPropostaPage() {
               </div>
             )}
 
-            {/* Error state */}
             {!aiLoading && aiError && (
-              <div style={{ textAlign: "center", padding: "40px 0" }}>
+              <div style={{ textAlign: "center", padding: "40px 0", background: "rgba(239, 68, 68, 0.1)", borderRadius: 16, border: "1px solid rgba(239, 68, 68, 0.3)" }}>
                 <span style={{ fontSize: 48, display: "block", marginBottom: 16 }}>😞</span>
-                <p className="p" style={{ fontSize: 16, color: "#fca5a5" }}>{aiError}</p>
-                <button className="cta-btn cta-btn--ghost" onClick={() => setShowAiModal(false)} style={{ marginTop: 20 }}>Fechar</button>
+                <p className="p" style={{ fontSize: 16, color: "#fca5a5", margin: 0 }}>{aiError}</p>
               </div>
             )}
 
-            {/* Result state */}
             {!aiLoading && aiResult && (
-              <div>
-                {/* Overall Score + Verdict */}
+              <div style={{
+                background: "linear-gradient(180deg, rgba(20, 24, 30, 0.95), rgba(15, 18, 23, 0.98))",
+                border: "1px solid rgba(124, 92, 255, 0.3)",
+                boxShadow: "0 10px 40px rgba(0, 0, 0, 0.3), 0 0 20px rgba(124, 92, 255, 0.1)",
+                borderRadius: 24, padding: "32px 24px"
+              }}>
+                <div style={{ textAlign: "center", marginBottom: 32 }}>
+                  <span style={{ fontSize: 40, display: "block", marginBottom: 8 }}>🤖</span>
+                  <h3 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>
+                    Análise do <span className="gradient-text">Analista I.A.</span>
+                  </h3>
+                  <p className="p" style={{ margin: "4px 0 0", fontSize: 13 }}>
+                    Prévia concluída! Revise as pontuações abaixo se necessário.
+                  </p>
+                </div>
+
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 24, marginBottom: 32, flexWrap: "wrap" }}>
                   <div style={{ textAlign: "center" }}>
                     <div style={{
-                      width: 100, height: 100, borderRadius: "50%",
+                      width: 90, height: 90, borderRadius: "50%",
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 32, fontWeight: 800,
+                      fontSize: 28, fontWeight: 800,
                       background: `conic-gradient(
                         ${aiResult.overallScore >= 7 ? "#22c55e" : aiResult.overallScore >= 5 ? "#f59e0b" : "#ef4444"}
                         ${aiResult.overallScore * 10}%,
@@ -718,7 +614,7 @@ export default function NovaPropostaPage() {
                       color: "var(--text)",
                     }}>
                       <span style={{
-                        width: 80, height: 80, borderRadius: "50%",
+                        width: 72, height: 72, borderRadius: "50%",
                         background: "var(--card-bg)", display: "flex",
                         alignItems: "center", justifyContent: "center",
                       }}>
@@ -738,16 +634,15 @@ export default function NovaPropostaPage() {
                   </div>
                 </div>
 
-                {/* Category Cards */}
                 <div className="grid" style={{ gap: 12 }}>
                   {aiResult.thoughts.map((t: any, idx: number) => (
                     <div className="ai-score-card" key={idx}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                        <span style={{ fontSize: 15, fontWeight: 700 }}>
+                        <span style={{ fontSize: 14, fontWeight: 700 }}>
                           {t.emoji} {t.category}
                         </span>
                         <span style={{
-                          fontSize: 18, fontWeight: 800,
+                          fontSize: 16, fontWeight: 800,
                           color: t.score >= 7 ? "#22c55e" : t.score >= 5 ? "#f59e0b" : "#ef4444",
                         }}>
                           {t.score}
@@ -771,30 +666,35 @@ export default function NovaPropostaPage() {
                     </div>
                   ))}
                 </div>
-
-                {/* Actions */}
-                <div style={{ display: "flex", gap: 12, marginTop: 32, flexWrap: "wrap" }}>
-                  <button
-                    className="cta-btn cta-btn--ghost"
-                    onClick={() => setShowAiModal(false)}
-                    style={{ flex: 1, justifyContent: "center", minWidth: 160 }}
-                  >
-                    ← Voltar e Ajustar
-                  </button>
-                  <button
-                    className="cta-btn cta-btn--primary"
-                    onClick={() => { setShowAiModal(false); submit(); }}
-                    disabled={loading}
-                    style={{ flex: 1, justifyContent: "center", minWidth: 160 }}
-                  >
-                    {loading ? "Enviando..." : "🚀 Enviar ao Comitê"}
-                  </button>
-                </div>
               </div>
             )}
+
+            {/* FINAL SUBMIT BUTTON */}
+            <button
+              className="cta-btn cta-btn--ghost"
+              onClick={submit}
+              disabled={loading || editais.length === 0 || !aiResult}
+              style={{ width: "100%", justifyContent: "center", padding: "16px", fontSize: 16, opacity: !aiResult ? 0.6 : 1 }}
+            >
+              {loading ? "Processando envio..." : 
+               !aiResult ? "Enviar Proposta (Submeta a análise prévia primeiro para desbloquear)" : 
+               "🚀 Enviar Proposta Direto ao Comitê"}
+            </button>
           </div>
-        </div>
-      )}
+
+          {msg && (
+            <div style={{ marginTop: 24, textAlign: "center", padding: "16px", borderRadius: 12, background: "rgba(239, 68, 68, 0.1)", color: "#fca5a5", border: "1px solid rgba(239, 68, 68, 0.3)" }}>
+              {msg}
+            </div>
+          )}
+          {editais.length === 0 && (
+            <div style={{ marginTop: 24, textAlign: "center", color: "var(--warn)", fontSize: 14 }}>
+              Nenhum edital está aberto para submissão no momento.
+            </div>
+          )}
+        </section>
+
+      </div>
     </div>
   );
 }

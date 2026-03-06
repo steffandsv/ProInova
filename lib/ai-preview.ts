@@ -49,7 +49,10 @@ export interface AIAnalysisResult {
 
 /* ─── Strip HTML helper ─── */
 function strip(html: string): string {
-  return html.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").replace(/&[a-z]+;/g, " ").trim();
+  let text = html.replace(/<[^>]*>/g, "");
+  text = text.replaceAll("&nbsp;", " ");
+  text = text.replace(/&[a-z]+;/g, " ");
+  return text.trim();
 }
 
 /* ─── Build Markdown payload ─── */
@@ -182,8 +185,9 @@ Responda EXCLUSIVAMENTE com um objeto JSON válido (sem markdown codeblocks, sem
 IMPORTANTE:
 - overallScore = média ponderada (Adequação à Lei peso 2, Relevância peso 1.5, resto peso 1).
 - verdict: >= 7 → "APROVAÇÃO PROVÁVEL", 5–6.9 → "COM RESSALVAS", < 5 → "NECESSITA REVISÃO".
-- Seja gentil e encorajador nas respostas, lembre-se que podem ser crianças. Nunca desmotive, mas seja honesto.
-- Comentários CURTOS (máximo 2 frases cada).`;
+- Você está conversando com o autor da proposta. Seja MUITO gentil, acolhedor e construtivo. Lembre-se que podem ser adolescentes inovando pela primeira vez.
+- Nunca desmotive. Elogie os pontos positivos e sugira as melhorias necessárias com extrema clareza e suavidade.
+- Comentários CURTOS, diretos e amigáveis (máximo 2 frases cada).`;
 }
 
 /* ─── API callers ─── */
@@ -248,28 +252,44 @@ async function callDeepSeek(messages: ChatMessage[]): Promise<string> {
 
 /* ─── Parse AI response ─── */
 function parseAnalysis(raw: string): AIAnalysisResult {
-  // Try to extract JSON from the string (handle codeblock wrapping)
-  let jsonStr = raw.trim();
+  // Remover bloco <think> do DeepSeek Reasoner, caso exista
+  let jsonStr = raw.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+
+  // Tentar extrair de blocos de marcação markdown ```json ... ```
   const cbMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (cbMatch) jsonStr = cbMatch[1].trim();
-
-  const parsed = JSON.parse(jsonStr);
-
-  // Validate shape
-  if (typeof parsed.overallScore !== "number" || !Array.isArray(parsed.thoughts)) {
-    throw new Error("Invalid AI response structure");
+  if (cbMatch) {
+    jsonStr = cbMatch[1].trim();
+  } else {
+    // Se não tiver markdown, tentar encontrar os limites de um objeto JSON válido
+    const firstBrace = jsonStr.indexOf("{");
+    const lastBrace = jsonStr.lastIndexOf("}");
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
+    }
   }
 
-  return {
-    overallScore: Math.round(parsed.overallScore * 10) / 10,
-    verdict: parsed.verdict || "COM RESSALVAS",
-    thoughts: parsed.thoughts.map((t: any) => ({
-      category: t.category || "",
-      emoji: t.emoji || "📌",
-      score: typeof t.score === "number" ? Math.round(t.score * 10) / 10 : 5,
-      comment: t.comment || "",
-    })),
-  };
+  try {
+    const parsed = JSON.parse(jsonStr);
+
+    // Validate shape
+    if (typeof parsed.overallScore !== "number" || !Array.isArray(parsed.thoughts)) {
+      throw new Error("Invalid AI response structure");
+    }
+
+    return {
+      overallScore: Math.round(parsed.overallScore * 10) / 10,
+      verdict: parsed.verdict || "COM RESSALVAS",
+      thoughts: parsed.thoughts.map((t: any) => ({
+        category: t.category || "",
+        emoji: t.emoji || "📌",
+        score: typeof t.score === "number" ? Math.round(t.score * 10) / 10 : 5,
+        comment: t.comment || "",
+      })),
+    };
+  } catch (error) {
+    console.error("Failed to parse JSON AI Result:", jsonStr, error);
+    throw new Error("A I.A. retornou uma resposta em um formato inesperado. Tente submeter ao analista novamente.");
+  }
 }
 
 /* ─── Main orchestrator ─── */
