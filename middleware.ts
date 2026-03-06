@@ -1,14 +1,26 @@
 import { NextResponse, type NextRequest } from "next/server";
-import jwt from "jsonwebtoken";
 
 const COOKIE_NAME = "proinova_session";
 
-type SessionPayload = {
-  sub: string;
-  role: string;
-  cpf: string;
-  nome: string;
-};
+/**
+ * Edge-compatible JWT payload decoder.
+ * We only DECODE (not verify) in middleware for performance.
+ * Real cryptographic verification happens server-side in requireAuth().
+ */
+function decodeJwtPayload(token: string): Record<string, any> | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    // Base64url decode the payload (2nd part)
+    const payload = parts[1]
+      .replace(/-/g, "+")
+      .replace(/_/g, "/");
+    const json = atob(payload);
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Route protection rules.
@@ -29,6 +41,7 @@ const PUBLIC_ROUTES = [
   "/api/auth/login",
   "/api/auth/register",
   "/api/auth/logout",
+  "/api/auth/me",
   "/api/municipes/lookup",
   "/api/health",
   "/api/transparencia",
@@ -42,14 +55,12 @@ const PUBLIC_ROUTES = [
 ];
 
 function isPublicRoute(pathname: string): boolean {
-  // Exact match or starts-with for public route groups
   return PUBLIC_ROUTES.some(
     (r) => pathname === r || pathname.startsWith(r + "/")
   );
 }
 
 function findProtectedRule(pathname: string): string[] | null {
-  // Check longest prefix match
   const sorted = Object.keys(PROTECTED_ROUTES).sort(
     (a, b) => b.length - a.length
   );
@@ -86,42 +97,40 @@ export function middleware(request: NextRequest) {
 
   // Must be authenticated
   const token = request.cookies.get(COOKIE_NAME)?.value;
-  const secret = process.env.JWT_SECRET;
-  if (!token || !secret) {
+  if (!token) {
     if (pathname.startsWith("/api/")) {
       return NextResponse.json({ message: "Não autenticado." }, { status: 401 });
     }
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  try {
-    const payload = jwt.verify(token, secret) as SessionPayload;
-
-    // If no specific roles required, any authenticated user can access
-    if (allowedRoles.length === 0) {
-      return NextResponse.next();
-    }
-
-    // Check role
-    if (!allowedRoles.includes(payload.role)) {
-      if (pathname.startsWith("/api/")) {
-        return NextResponse.json({ message: "Sem permissão." }, { status: 403 });
-      }
-      return NextResponse.redirect(new URL("/painel", request.url));
-    }
-
-    return NextResponse.next();
-  } catch {
+  // Decode (not verify) the JWT payload — verification happens in route handlers
+  const payload = decodeJwtPayload(token);
+  if (!payload || !payload.sub) {
     if (pathname.startsWith("/api/")) {
       return NextResponse.json({ message: "Sessão inválida." }, { status: 401 });
     }
     return NextResponse.redirect(new URL("/login", request.url));
   }
+
+  // If no specific roles required, any authenticated user can access
+  if (allowedRoles.length === 0) {
+    return NextResponse.next();
+  }
+
+  // Check role
+  if (!allowedRoles.includes(payload.role)) {
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ message: "Sem permissão." }, { status: 403 });
+    }
+    return NextResponse.redirect(new URL("/painel", request.url));
+  }
+
+  return NextResponse.next();
 }
 
 export const config = {
   matcher: [
-    // Match all routes except static files
     "/((?!_next/static|_next/image|favicon.ico).*)",
   ],
 };
