@@ -11,14 +11,14 @@ function stripHtml(html: string): string {
 
 const CronogramaItem = z.object({
   mes: z.number().int().min(1),
-  entregavel: z.string().min(10),
-  evidencia: z.string().min(5),
-  criterioAceitacao: z.string().min(10),
+  entregavel: z.string().min(10).max(2000),
+  evidencia: z.string().min(5).max(1000),
+  criterioAceitacao: z.string().min(10).max(2000),
 });
 
 const EquipeMembroItem = z.object({
   cpf: z.string().min(11),
-  nome: z.string().min(3),
+  nome: z.string().min(3).max(200),
   dataNasc: z.string().optional(),
   vinculoEstudantil: z.string().optional(),
   ehMenor: z.boolean(),
@@ -27,26 +27,94 @@ const EquipeMembroItem = z.object({
   percentualRateio: z.number().min(0).max(100),
 });
 
+/*
+ * ─── Limites de caracteres baseados no orçamento de tokens ───
+ * DeepSeek Reasoner: 64.000 tokens de entrada
+ * 1 token ≈ 2,10 caracteres → 134.400 chars total
+ * System prompt + markdown overhead ≈ 8.400 chars (~4.000 tokens)
+ * Disponível p/ conteúdo do usuário ≈ 126.000 chars (~60.000 tokens)
+ * Distribuição por campo (10 rich-text + resumo + cronograma):
+ */
+const FIELD_LIMITS = {
+  titulo: 200,
+  resumo: 2000,
+  linhaTematica: 200,
+  problema: 15000,
+  publicoAlvo: 10000,
+  propostaValor: 15000,
+  solucao: 15000,
+  metodologia: 15000,
+  viabilidade: 12000,
+  riscos: 12000,
+  indicadores: 10000,
+  orcamentoRateio: 10000,
+  paginaPublicaPlano: 10000,
+} as const;
+
 const PropostaSchema = z.object({
   editalId: z.string().min(1),
-  titulo: z.string().min(5),
-  resumo: z.string().min(50).max(1000),
-  linhaTematica: z.string().min(3),
+  titulo: z.string().min(5).max(FIELD_LIMITS.titulo),
+  resumo: z.string().min(50).max(FIELD_LIMITS.resumo),
+  linhaTematica: z.string().min(3).max(FIELD_LIMITS.linhaTematica),
   duracaoMeses: z.number().int().min(1).max(24),
-  problema: z.string().min(1),
-  publicoAlvo: z.string().min(1),
-  propostaValor: z.string().min(1),
-  solucao: z.string().min(1),
-  metodologia: z.string().min(1),
-  viabilidade: z.string().min(1),
-  riscos: z.string().min(1),
-  indicadores: z.string().min(1),
-  orcamentoRateio: z.string().min(1),
-  paginaPublicaPlano: z.string().min(1),
+  problema: z.string().min(1).max(FIELD_LIMITS.problema),
+  publicoAlvo: z.string().min(1).max(FIELD_LIMITS.publicoAlvo),
+  propostaValor: z.string().min(1).max(FIELD_LIMITS.propostaValor),
+  solucao: z.string().min(1).max(FIELD_LIMITS.solucao),
+  metodologia: z.string().min(1).max(FIELD_LIMITS.metodologia),
+  viabilidade: z.string().min(1).max(FIELD_LIMITS.viabilidade),
+  riscos: z.string().min(1).max(FIELD_LIMITS.riscos),
+  indicadores: z.string().min(1).max(FIELD_LIMITS.indicadores),
+  orcamentoRateio: z.string().min(1).max(FIELD_LIMITS.orcamentoRateio),
+  paginaPublicaPlano: z.string().min(1).max(FIELD_LIMITS.paginaPublicaPlano),
   ipConcorda: z.boolean().refine((v) => v === true, "Você precisa concordar com IP/confidencialidade"),
   cronograma: z.array(CronogramaItem).min(1),
   equipe: z.array(EquipeMembroItem).min(1),
 });
+
+/* ─── Mapa de labels dos campos (para erros legíveis) ─── */
+const FIELD_LABELS: Record<string, string> = {
+  editalId: "Edital",
+  titulo: "Título do Projeto",
+  resumo: "Resumo Executivo",
+  linhaTematica: "Linha Temática",
+  duracaoMeses: "Duração (meses)",
+  problema: "Qual é o problema?",
+  publicoAlvo: "Público-alvo",
+  propostaValor: "Proposta de valor",
+  solucao: "Solução prática",
+  metodologia: "Metodologia",
+  viabilidade: "Viabilidade e recursos",
+  riscos: "Riscos e mitigação",
+  indicadores: "Indicadores de sucesso",
+  orcamentoRateio: "Orçamento e materiais",
+  paginaPublicaPlano: "Plano de transparência",
+  ipConcorda: "Concordância IP",
+  cronograma: "Cronograma",
+  equipe: "Equipe",
+  entregavel: "Entregável",
+  evidencia: "Evidência",
+  criterioAceitacao: "Critério de aceitação",
+  cpf: "CPF",
+  nome: "Nome",
+  percentualRateio: "Parcela da Bolsa (%)",
+};
+
+/** Converte erros do Zod em uma mensagem legível com campo + problema */
+function formatZodErrors(errors: z.ZodError): string {
+  const lines = errors.issues.slice(0, 5).map((issue) => {
+    const pathParts = issue.path.map((p, i) => {
+      if (typeof p === "number") return `#${p + 1}`;
+      return FIELD_LABELS[String(p)] || String(p);
+    });
+    const field = pathParts.join(" → ") || "Geral";
+    return `• ${field}: ${issue.message}`;
+  });
+  if (errors.issues.length > 5) {
+    lines.push(`... e mais ${errors.issues.length - 5} erro(s).`);
+  }
+  return lines.join("\n");
+}
 
 type PropostaInput = z.infer<typeof PropostaSchema>;
 
@@ -195,8 +263,7 @@ export default function NovaPropostaPage() {
     const parsed = PropostaSchema.safeParse(state);
     if (!parsed.success) {
       setMsg(
-        parsed.error.issues[0]?.message ||
-          "Revise os campos. Verifique CPFs e comprimentos mínimos de texto."
+        "⚠️ Campos com erro:\n" + formatZodErrors(parsed.error)
       );
       return;
     }
@@ -229,7 +296,7 @@ export default function NovaPropostaPage() {
   async function submitToAI() {
     const parsed = PropostaSchema.safeParse(state);
     if (!parsed.success) {
-      setMsg("Preencha todos os campos corretamente antes de solicitar a análise. Role a página para cima e confira os avisos em vermelho.");
+      setMsg("⚠️ Campos com erro:\n" + formatZodErrors(parsed.error));
       return;
     }
     setAiLoading(true);
@@ -777,7 +844,7 @@ export default function NovaPropostaPage() {
           </div>
 
           {msg && (
-            <div style={{ marginTop: 24, textAlign: "center", padding: "16px", borderRadius: 12, background: "rgba(239, 68, 68, 0.1)", color: "#fca5a5", border: "1px solid rgba(239, 68, 68, 0.3)" }}>
+            <div style={{ marginTop: 24, textAlign: "left", padding: "16px 20px", borderRadius: 12, background: "rgba(239, 68, 68, 0.1)", color: "#fca5a5", border: "1px solid rgba(239, 68, 68, 0.3)", whiteSpace: "pre-line", fontSize: 14, lineHeight: 1.6 }}>
               {msg}
             </div>
           )}
