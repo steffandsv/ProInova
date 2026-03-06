@@ -986,6 +986,25 @@ a:hover {
   color: rgba(255, 255, 255, 0.85);
   white-space: pre-wrap;
   animation: fadeIn 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  max-height: 250px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+/* Scrollbar customizada para o campo de pensamento da IA */
+.ai-reasoner-text::-webkit-scrollbar {
+  width: 6px;
+}
+.ai-reasoner-text::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+.ai-reasoner-text::-webkit-scrollbar-thumb {
+  background: rgba(124, 92, 255, 0.4);
+  border-radius: 10px;
+}
+.ai-reasoner-text::-webkit-scrollbar-thumb:hover {
+  background: rgba(124, 92, 255, 0.6);
 }
 
 @keyframes fadeIn {

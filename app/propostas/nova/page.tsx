@@ -638,6 +638,8 @@ export default function NovaPropostaPage() {
               </h3>
               <p className="p" style={{ maxWidth: 600, margin: "0 auto", color: "var(--muted)" }}>
                 Isso pode levar de 15 a 30 segundos. Estamos lendo cada detalhe da sua proposta para garantir que ela atenda aos padrões da Inovação Municipal.
+                <br /><br />
+                <strong>Carregando:</strong> A I.A continua raciocinando e preparando sua análise. Assim que ficar pronto a tela será alterada. Não se preocupe se a tela ficou parada, sua resposta está chegando.
               </p>
 
               {aiReasoningText && (
@@ -669,13 +671,12 @@ export default function NovaPropostaPage() {
                 boxShadow: "0 10px 40px rgba(0, 0, 0, 0.3), 0 0 20px rgba(124, 92, 255, 0.1)",
                 borderRadius: 24, padding: "32px 24px"
               }}>
-                <div style={{ textAlign: "center", marginBottom: 32 }}>
-                  <span style={{ fontSize: 40, display: "block", marginBottom: 8 }}>🤖</span>
-                  <h3 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>
+                <div style={{ padding: "0 20px" }}>
+                  <h3 className="h3" style={{ margin: 0, fontSize: 18, color: "var(--text)" }}>
                     Análise do <span className="gradient-text">Analista I.A.</span>
                   </h3>
                   <p className="p" style={{ margin: "4px 0 0", fontSize: 13 }}>
-                    Lembre-se: A minha análise não é um veredicto, você pode revisar o que escreveu e submeter novamente se quiser, terei prazer em reavaliar.
+                    Após a análise ela te dará as notas e dicas do que melhorar, basta revisar a página. Terminou de revisar? Clique para enviar ao comitê!
                   </p>
                 </div>
 
