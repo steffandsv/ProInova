@@ -75,6 +75,8 @@ jobs:
             APP_NAME="${{ secrets.APP_NAME }}"
             PUBLIC_BASE_URL=${{ secrets.PUBLIC_BASE_URL }}
             NODE_ENV=production
+            QWEN_API_KEY=${{ secrets.QWEN_API_KEY }}
+            DEEPSEEK_API_KEY=${{ secrets.DEEPSEEK_API_KEY }}
             ENV
 
             # login no GHCR (se o pacote for privado, use GHCR_TOKEN; se for público, pode remover)

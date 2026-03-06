@@ -201,10 +201,15 @@ export default function NovaPropostaPage() {
     }
     setLoading(true);
     try {
+      const payload = {
+        ...parsed.data,
+        aiAnalysisJson: aiResult,
+      };
+
       const res = await fetch("/api/propostas", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(parsed.data),
+        body: JSON.stringify(payload),
       });
       const json = await res.json();
       if (!res.ok) {

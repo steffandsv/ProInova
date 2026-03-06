@@ -155,6 +155,7 @@ model Proposta {
   pdfPropostaUrl     String?         @db.VarChar(500)
 
   cronogramaJson     Json            // legado – mantido para compatibilidade
+  aiAnalysisJson     Json?           // analise prévia gerada pela I.A. no momento da submissão
 
   status             PropostaStatus  @default(RASCUNHO)
   sigiloso           Boolean         @default(false) // Art. 19, parágrafo único

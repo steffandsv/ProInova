@@ -146,6 +146,93 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
         </div>
       )}
 
+      {/* ======================= PARECER PRÉVIO DA I.A. ======================= */}
+      {data.aiAnalysisJson && (
+        <div style={{
+          background: "linear-gradient(180deg, rgba(20, 24, 30, 0.95), rgba(15, 18, 23, 0.98))",
+          border: "1px solid rgba(124, 92, 255, 0.3)",
+          boxShadow: "0 10px 40px rgba(0, 0, 0, 0.3), 0 0 20px rgba(124, 92, 255, 0.1)",
+          borderRadius: 24, padding: "32px 24px"
+        }}>
+          <div style={{ textAlign: "center", marginBottom: 32 }}>
+            <span style={{ fontSize: 40, display: "block", marginBottom: 8 }}>🤖</span>
+            <h3 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>
+              Parecer Prévio do <span className="gradient-text">Analista I.A.</span>
+            </h3>
+            <p className="p" style={{ margin: "4px 0 0", fontSize: 13 }}>
+              Gerado automaticamente no momento da submissão da proposta.
+            </p>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 24, marginBottom: 32, flexWrap: "wrap" }}>
+            <div style={{ textAlign: "center" }}>
+              <div style={{
+                width: 90, height: 90, borderRadius: "50%",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 28, fontWeight: 800,
+                background: `conic-gradient(
+                  ${data.aiAnalysisJson.overallScore >= 7 ? "#22c55e" : data.aiAnalysisJson.overallScore >= 5 ? "#f59e0b" : "#ef4444"}
+                  ${data.aiAnalysisJson.overallScore * 10}%,
+                  rgba(255,255,255,0.08) 0
+                )`,
+                color: "var(--text)",
+              }}>
+                <span style={{
+                  width: 72, height: 72, borderRadius: "50%",
+                  background: "var(--card-bg)", display: "flex",
+                  alignItems: "center", justifyContent: "center",
+                }}>
+                  {data.aiAnalysisJson.overallScore}
+                </span>
+              </div>
+              <p className="p" style={{ fontSize: 12, margin: "8px 0 0" }}>Nota Geral</p>
+            </div>
+            <div className={`ai-verdict-badge ${
+              data.aiAnalysisJson.verdict === "APROVAÇÃO PROVÁVEL" ? "ai-verdict--good" :
+              data.aiAnalysisJson.verdict === "COM RESSALVAS" ? "ai-verdict--warn" :
+              "ai-verdict--bad"
+            }`}>
+              {data.aiAnalysisJson.verdict === "APROVAÇÃO PROVÁVEL" ? "✅" :
+               data.aiAnalysisJson.verdict === "COM RESSALVAS" ? "⚠️" : "🔄"}
+              {" "}{data.aiAnalysisJson.verdict}
+            </div>
+          </div>
+
+          <div className="grid" style={{ gap: 12 }}>
+            {data.aiAnalysisJson.thoughts.map((t: any, idx: number) => (
+              <div className="ai-score-card" key={idx}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <span style={{ fontSize: 14, fontWeight: 700 }}>
+                    {t.emoji} {t.category}
+                  </span>
+                  <span style={{
+                    fontSize: 16, fontWeight: 800,
+                    color: t.score >= 7 ? "#22c55e" : t.score >= 5 ? "#f59e0b" : "#ef4444",
+                  }}>
+                    {t.score}
+                  </span>
+                </div>
+                <div className="ai-score-bar">
+                  <div
+                    className="ai-score-fill"
+                    style={{
+                      width: `${t.score * 10}%`,
+                      background: t.score >= 7 ? "linear-gradient(90deg, #22c55e, #4ade80)" :
+                                  t.score >= 5 ? "linear-gradient(90deg, #f59e0b, #fbbf24)" :
+                                  "linear-gradient(90deg, #ef4444, #f87171)",
+                      animationDelay: `${idx * 0.1}s`,
+                    }}
+                  />
+                </div>
+                <p className="p" style={{ fontSize: 13, margin: "8px 0 0", lineHeight: 1.5 }}>
+                  {t.comment}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ======================= DADOS DA PROPOSTA ======================= */}
       <div className="grid two">
         <div className="card">
