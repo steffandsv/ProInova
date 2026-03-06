@@ -45,6 +45,7 @@ export interface AIAnalysisResult {
   overallScore: number;
   verdict: string;
   thoughts: CategoryScore[];
+  fieldHints: Record<string, string>;
 }
 
 /* ─── Strip HTML helper ─── */
@@ -149,6 +150,18 @@ Responda EXCLUSIVAMENTE com um objeto JSON válido (sem markdown codeblocks, sem
 {
   "overallScore": <número 0-10 com 1 decimal>,
   "verdict": "<APROVAÇÃO PROVÁVEL|COM RESSALVAS|NECESSITA REVISÃO>",
+  "fieldHints": {
+    "problema": "<Dica curta de como melhorar a escrita ou dados do problema>",
+    "publicoAlvo": "<Dica curta...>",
+    "propostaValor": "<Dica curta...>",
+    "solucao": "<Dica curta...>",
+    "metodologia": "<Dica curta...>",
+    "viabilidade": "<Dica curta...>",
+    "riscos": "<Dica curta...>",
+    "indicadores": "<Dica curta...>",
+    "cronograma": "<Dica curta sobre o cronograma de meses>",
+    "orcamentoRateio": "<Dica curta...>"
+  },
   "thoughts": [
     {
       "category": "Viabilidade da Equipe e Técnica",
@@ -164,6 +177,7 @@ IMPORTANTE:
 - overallScore = média ponderada (Adequação à Lei peso 2, Relevância peso 1.5, resto peso 1).
 - verdict: >= 7 → "APROVAÇÃO PROVÁVEL", 5–6.9 → "COM RESSALVAS", < 5 → "NECESSITA REVISÃO".
 - JUSTIFIQUE SUAS NOTAS: Se você der uma nota abaixo de 8 ou 9, OBRIGATORIAMENTE explique em "comment" de forma clara, técnica e pedagógica qual lacuna ou ponto cego da proposta gerou essa dedução de nota. O proponente precisa saber EXATAMENTE o que melhorar. Nunca dê uma nota mediana sem justificar o porquê.
+- IMPORTANTE 2: Em "fieldHints", para CADA UMA das chaves solicitadas, gere uma DICA CURTA, DIRETA e ENCORAJADORA (máximo 1 ou 2 frases curtas com 1 emoji) orientando o usuário sobre o que exatamente faltou naquele campo da proposta ou o que ele pode melhorar para o Comitê aprovar mais facilmente. Se o campo estiver perfeito, elogie brevemente. Ele lerá isso ENQUANTO preenche o formulário.
 - Você está conversando com o autor da proposta. Seja MUITO gentil, acolhedor, mas criterioso. Relacione sua avaliação à escala de Jaborandi e aos recursos do C.TECH.`;
 }
 
@@ -202,6 +216,7 @@ export function parseAnalysis(raw: string): AIAnalysisResult {
     return {
       overallScore: Math.round(parsed.overallScore * 10) / 10,
       verdict: parsed.verdict || "COM RESSALVAS",
+      fieldHints: parsed.fieldHints || {},
       thoughts: parsed.thoughts.map((t: any) => ({
         category: t.category || "",
         emoji: t.emoji || "📌",
@@ -238,7 +253,7 @@ export async function analyzeProposalStream(data: ProposalData): Promise<Readabl
         model: "deepseek-reasoner",
         messages,
         stream: true,
-        max_tokens: 2500,
+        max_tokens: 8000,
       }),
     });
     if (!res.ok) throw new Error(`DeepSeek Error ${res.status}: ${await res.text()}`);
@@ -257,7 +272,7 @@ export async function analyzeProposalStream(data: ProposalData): Promise<Readabl
         messages,
         stream: true,
         temperature: 0.3,
-        max_tokens: 2500,
+        max_tokens: 8000,
       }),
     });
     if (!res.ok) throw new Error(`Qwen Error ${res.status}: ${await res.text()}`);

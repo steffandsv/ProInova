@@ -479,41 +479,49 @@ export default function NovaPropostaPage() {
               <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: "0 0 6px" }}>Qual é o problema?</h3>
               <p className="p" style={{ margin: "0 0 10px", fontSize: 13 }}>Descreva o problema real que você observou. Traga dados, estatísticas ou relatos que comprovem que ele existe.</p>
               <RichEditor value={state.problema} onChange={(v) => set("problema", v)} placeholder="Quem sofre com isso hoje? Como você sabe que o problema existe?" />
+              {aiResult?.fieldHints?.problema && <div className="ai-field-hint">💡 <strong>Dica do Avaliador:</strong> {aiResult.fieldHints.problema}</div>}
             </div>
             <div>
               <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: "0 0 6px" }}>Quem é o público-alvo?</h3>
               <p className="p" style={{ margin: "0 0 10px", fontSize: 13 }}>Quantas pessoas são afetadas? Onde estão? Qual perfil (idade, localização, contexto)?</p>
               <RichEditor value={state.publicoAlvo} onChange={(v) => set("publicoAlvo", v)} placeholder="Tamanho estimado do público? Onde eles estão?" />
+              {aiResult?.fieldHints?.publicoAlvo && <div className="ai-field-hint">💡 <strong>Dica do Avaliador:</strong> {aiResult.fieldHints.publicoAlvo}</div>}
             </div>
             <div>
               <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: "0 0 6px" }}>Qual é a proposta de valor?</h3>
               <p className="p" style={{ margin: "0 0 10px", fontSize: 13 }}>O grande benefício que o projeto entrega. Como o mundo melhora quando isso estiver pronto?</p>
               <RichEditor value={state.propostaValor} onChange={(v) => set("propostaValor", v)} placeholder="Como o mundo melhora quando isso estiver pronto?" />
+              {aiResult?.fieldHints?.propostaValor && <div className="ai-field-hint">💡 <strong>Dica do Avaliador:</strong> {aiResult.fieldHints.propostaValor}</div>}
             </div>
             <div>
               <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: "0 0 6px" }}>Qual é a solução prática?</h3>
               <p className="p" style={{ margin: "0 0 10px", fontSize: 13 }}>O que exatamente a equipe vai construir? E o que NÃO vai construir (escopo negativo)?</p>
               <RichEditor value={state.solucao} onChange={(v) => set("solucao", v)} placeholder="O que exatamente a equipe vai construir (e o que NÃO vai)?" />
+              {aiResult?.fieldHints?.solucao && <div className="ai-field-hint">💡 <strong>Dica do Avaliador:</strong> {aiResult.fieldHints.solucao}</div>}
             </div>
             <div>
               <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: "0 0 6px" }}>Metodologia de execução</h3>
               <p className="p" style={{ margin: "0 0 10px", fontSize: 13 }}>Quais ferramentas, linguagens ou métodos serão usados? Como serão feitos testes com usuários reais?</p>
               <RichEditor value={state.metodologia} onChange={(v) => set("metodologia", v)} placeholder="Quais ferramentas serão usadas? Como testarão com usuários?" />
+              {aiResult?.fieldHints?.metodologia && <div className="ai-field-hint">💡 <strong>Dica do Avaliador:</strong> {aiResult.fieldHints.metodologia}</div>}
             </div>
             <div>
               <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: "0 0 6px" }}>Viabilidade e recursos</h3>
               <p className="p" style={{ margin: "0 0 10px", fontSize: 13 }}>A equipe tem os recursos humanos, técnicos e materiais necessários? Há dependências externas?</p>
               <RichEditor value={state.viabilidade} onChange={(v) => set("viabilidade", v)} placeholder="A equipe tem os recursos necessários? Alguma dependência externa?" />
+              {aiResult?.fieldHints?.viabilidade && <div className="ai-field-hint">💡 <strong>Dica do Avaliador:</strong> {aiResult.fieldHints.viabilidade}</div>}
             </div>
             <div>
               <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: "0 0 6px" }}>Riscos e como mitigá-los</h3>
               <p className="p" style={{ margin: "0 0 10px", fontSize: 13 }}>Cite pelo menos: 1 risco operacional, 1 risco de adoção/segurança, e como pretende reduzir cada um.</p>
               <RichEditor value={state.riscos} onChange={(v) => set("riscos", v)} placeholder="O que pode dar errado (Operacional, Segurança, Adesão) e como prevenir?" />
+              {aiResult?.fieldHints?.riscos && <div className="ai-field-hint">💡 <strong>Dica do Avaliador:</strong> {aiResult.fieldHints.riscos}</div>}
             </div>
             <div>
               <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: "0 0 6px" }}>Indicadores de sucesso (KPIs)</h3>
               <p className="p" style={{ margin: "0 0 10px", fontSize: 13 }}>Use números! Ex: &ldquo;Reduzir de 30 dias para 5 dias&rdquo;, &ldquo;De R$ 0 para R$ 10.000/mês&rdquo;, &ldquo;Atender 200 alunos&rdquo;.</p>
               <RichEditor value={state.indicadores} onChange={(v) => set("indicadores", v)} placeholder="Dica: De R$ X para R$ Y. De Z horas para W minutos. Métrica base e alvo." />
+              {aiResult?.fieldHints?.indicadores && <div className="ai-field-hint">💡 <strong>Dica do Avaliador:</strong> {aiResult.fieldHints.indicadores}</div>}
             </div>
           </div>
         </section>
@@ -553,6 +561,7 @@ export default function NovaPropostaPage() {
               </div>
             ))}
           </div>
+          {aiResult?.fieldHints?.cronograma && <div className="ai-field-hint" style={{ marginTop: 20 }}>💡 <strong>Dica do Avaliador:</strong> {aiResult.fieldHints.cronograma}</div>}
 
           <div style={{ display: "flex", flexDirection: "column", gap: 28, marginTop: 40, paddingTop: 32, borderTop: "1px dashed var(--border)" }}>
             <div>
@@ -564,6 +573,7 @@ export default function NovaPropostaPage() {
               <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: "0 0 6px" }}>Orçamento e materiais extras</h3>
               <p className="p" style={{ margin: "0 0 10px", fontSize: 13 }}>Precisa de algum equipamento ou material que a prefeitura deva prover? Justifique a necessidade.</p>
               <RichEditor value={state.orcamentoRateio} onChange={(v) => set("orcamentoRateio", v)} placeholder="Precisa comprar algum equipamento específico que a prefeitura deva prover? Detalhe." />
+              {aiResult?.fieldHints?.orcamentoRateio && <div className="ai-field-hint">💡 <strong>Dica do Avaliador:</strong> {aiResult.fieldHints.orcamentoRateio}</div>}
             </div>
           </div>
         </section>
@@ -665,7 +675,7 @@ export default function NovaPropostaPage() {
                     Análise do <span className="gradient-text">Analista I.A.</span>
                   </h3>
                   <p className="p" style={{ margin: "4px 0 0", fontSize: 13 }}>
-                    Prévia concluída! Revise as pontuações abaixo se necessário.
+                    Lembre-se: A minha análise não é um veredicto, você pode revisar o que escreveu e submeter novamente se quiser, terei prazer em reavaliar.
                   </p>
                 </div>
 
