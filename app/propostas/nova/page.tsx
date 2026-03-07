@@ -75,56 +75,73 @@ const FIELD_LIMITS = {
   paginaPublicaPlano: 8000,
 } as const;
 
-/** Gemini-style paragraph-by-paragraph reasoning display with evaporate/materialize effect */
+/** Gemini-style paragraph-by-paragraph reasoning display with evaporate/materialize effect.
+ *  Only NEWLY-ARRIVING words get the fade animation; already-visible words stay solid. */
 function ReasoningWordFade({ text }: { text: string }) {
-  const [activeSentence, setActiveSentence] = useState("");
+  const [activeParagraph, setActiveParagraph] = useState("");
   const [phase, setPhase] = useState<"enter" | "exit">("enter");
-  const lastSentenceIdxRef = useRef(0);
+  const lastParaIdxRef = useRef(0);
+  const prevWordCountRef = useRef(0);
   const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!text) return;
 
-    // Only split when there's a sentence-ending punctuation FOLLOWED by a newline
+    // Only split when there's sentence-ending punctuation FOLLOWED by a newline
     const paragraphs = text
       .split(/(?<=[.!?。])\s*\n+/g)
       .map((s) => s.trim())
-      .filter((s) => s.length > 3);
+      .filter((s) => s.length > 0);
 
     if (paragraphs.length === 0) return;
 
     const latestIdx = paragraphs.length - 1;
     const latest = paragraphs[latestIdx];
 
-    // Same paragraph growing (more words streaming in) → just update
-    if (latestIdx === lastSentenceIdxRef.current) {
+    // Same paragraph growing — update text, keep previous word count for animation
+    if (latestIdx === lastParaIdxRef.current) {
       if (phase !== "enter") setPhase("enter");
-      setActiveSentence(latest);
+      setActiveParagraph((prev) => {
+        // Track how many words were already shown before this update
+        const oldWords = prev.split(/(\s+)/).filter((w) => !/^\s*$/.test(w)).length;
+        prevWordCountRef.current = oldWords;
+        return latest;
+      });
       return;
     }
 
-    // NEW paragraph detected — evaporate the old one, then show new
-    lastSentenceIdxRef.current = latestIdx;
+    // NEW paragraph — evaporate old, show new
+    lastParaIdxRef.current = latestIdx;
+    prevWordCountRef.current = 0; // reset: all words in new paragraph are "new"
     setPhase("exit");
 
     if (exitTimerRef.current) clearTimeout(exitTimerRef.current);
     exitTimerRef.current = setTimeout(() => {
-      setActiveSentence(latest);
+      setActiveParagraph(latest);
       setPhase("enter");
     }, 200);
 
     return () => { if (exitTimerRef.current) clearTimeout(exitTimerRef.current); };
   }, [text]);
 
-  const words = activeSentence.split(/(\s+)/);
+  // Split into word tokens (keeping whitespace)
+  const tokens = activeParagraph.split(/(\s+)/);
+  let wordIndex = 0;
 
   return (
     <div className={`ai-reasoner-text ${phase === "exit" ? "exiting" : ""}`}>
-      {words.map((word, i) => {
-        if (/^\s+$/.test(word)) return <span key={`ws-${i}`}>{word}</span>;
+      {tokens.map((token, i) => {
+        if (/^\s+$/.test(token)) return <span key={`ws-${i}`}>{token}</span>;
+        const thisWordIdx = wordIndex++;
+        const isNew = thisWordIdx >= prevWordCountRef.current;
+        const delay = isNew ? (thisWordIdx - prevWordCountRef.current) * 20 : 0;
         return (
-          <span key={`${lastSentenceIdxRef.current}-${i}`} className="ai-word" style={{ animationDelay: `${i * 15}ms` }}>
-            {word}
+          <span
+            key={`${lastParaIdxRef.current}-${thisWordIdx}`}
+            className={isNew ? "ai-word" : "ai-word-solid"}
+            style={isNew ? { animationDelay: `${delay}ms` } : undefined}
+          >
+            {token}
           </span>
         );
       })}

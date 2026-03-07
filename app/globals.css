@@ -1007,6 +1007,11 @@ a:hover {
   animation: word-materialize 0.25s ease-out forwards;
 }
 
+.ai-word-solid {
+  display: inline;
+  opacity: 1;
+}
+
 @keyframes word-materialize {
   0% {
     opacity: 0;
