@@ -279,6 +279,7 @@ function NovaPropostaInner() {
   /* ─── Member lookup state per index ─── */
   const [memberLookups, setMemberLookups] = useState<Record<number, { loading: boolean; found: boolean | null; message?: string }>>({});
   const leaderLoadedRef = useRef(false);
+  const [equalSplit, setEqualSplit] = useState(true);
 
   /* ─── Auto-fill leader (member 0) from session ─── */
   useEffect(() => {
@@ -507,6 +508,22 @@ function NovaPropostaInner() {
       ],
     }));
   }
+
+  /* ─── Auto-distribute bolsa equally ─── */
+  useEffect(() => {
+    if (!equalSplit) return;
+    const n = state.equipe.length;
+    if (n === 0) return;
+    const base = Math.floor(100 / n);
+    const remainder = 100 - base * n;
+    setState((s) => ({
+      ...s,
+      equipe: s.equipe.map((m, i) => ({
+        ...m,
+        percentualRateio: i < remainder ? base + 1 : base,
+      })),
+    }));
+  }, [equalSplit, state.equipe.length]);
 
   /* ─── CPF lookup for additional members ─── */
   async function lookupMemberCpf(idx: number, rawCpf: string) {
@@ -784,9 +801,16 @@ function NovaPropostaInner() {
               Rateio distribuído: <strong style={{ color: rateioSum === 100 ? "var(--good)" : "var(--warn)", marginLeft: 4 }}>{rateioSum}%</strong>
             </div>
           </div>
-          <p className="p" style={{ fontSize: 15, marginBottom: 24 }}>
+          <p className="p" style={{ fontSize: 15, marginBottom: 16 }}>
             Quem vai construir essa solução? Adicione todos os membros. A primeira pessoa listada será considerada o <strong>Proponente (líder)</strong>.
           </p>
+
+          {/* Equal split toggle */}
+          <label style={{ display: "flex", gap: 10, alignItems: "center", cursor: "pointer", padding: "10px 16px", background: equalSplit ? "rgba(124, 92, 255, 0.08)" : "rgba(255,255,255,0.03)", borderRadius: 10, border: `1px solid ${equalSplit ? "rgba(124, 92, 255, 0.3)" : "var(--border)"}`, marginBottom: 20, transition: "all 0.2s" }}>
+            <input type="checkbox" checked={equalSplit} onChange={(e) => setEqualSplit(e.target.checked)} style={{ width: 18, height: 18, accentColor: "var(--accent)" }} />
+            <span className="p" style={{ margin: 0, fontWeight: 600, fontSize: 14 }}>⚖️ Dividir bolsa igualmente entre os membros</span>
+            {equalSplit && <span className="badge" style={{ fontSize: 12, marginLeft: "auto" }}>{Math.floor(100 / state.equipe.length)}% cada</span>}
+          </label>
 
           <div className="grid" style={{ gap: 16 }}>
             {state.equipe.map((it, idx) => {
@@ -877,8 +901,6 @@ function NovaPropostaInner() {
                         const v = calcVinculo(e.target.value);
                         updateEq(idx, { dataNasc: e.target.value, vinculoEstudantil: v.vinculoEstudantil, ehMenor: v.ehMenor });
                       }}
-                      readOnly={isLeader || lookup?.found === true}
-                      style={{ opacity: (isLeader && it.dataNasc) || lookup?.found === true ? 0.7 : 1 }}
                     />
                   </div>
                   <div className="row">
@@ -899,7 +921,17 @@ function NovaPropostaInner() {
                 <div className="grid two" style={{ marginTop: 12 }}>
                   <div className="row">
                     <div className="label">Parcela da Bolsa (%)</div>
-                    <input className="input" type="number" min="0" max="100" value={it.percentualRateio} onChange={(e) => updateEq(idx, { percentualRateio: Number(e.target.value) })} style={{ color: "var(--accent)", fontWeight: 600 }} />
+                    <input
+                      className="input"
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={it.percentualRateio}
+                      onChange={(e) => updateEq(idx, { percentualRateio: Number(e.target.value) })}
+                      readOnly={equalSplit}
+                      style={{ color: "var(--accent)", fontWeight: 600, opacity: equalSplit ? 0.7 : 1 }}
+                    />
+                    {equalSplit && <p className="p" style={{ margin: "4px 0 0", fontSize: 12, color: "var(--muted)" }}>🔒 Divisão igualitária ativa</p>}
                   </div>
                   <div className="row" style={{ display: "flex", alignItems: "center" }}>
                     <label style={{ display: "flex", gap: 10, alignItems: "center", cursor: "pointer", padding: "10px 14px", background: "rgba(255,255,255,0.03)", borderRadius: 10, border: "1px solid var(--border)", width: "100%", marginTop: 20 }}>
