@@ -4,6 +4,20 @@ import { Suspense, useEffect, useMemo, useRef, useState, useCallback } from "rea
 import { useSearchParams } from "next/navigation";
 import { z } from "zod";
 import RichEditor from "@/app/RichEditor";
+import { formatCPF, isValidCPF, onlyDigits } from "@/lib/cpf";
+
+/* ─── Age-based school/eligibility calculator ─── */
+function calcVinculo(dataNasc: string | null | undefined): { vinculoEstudantil: string; ehMenor: boolean; inaptoMenor14: boolean } {
+  if (!dataNasc) return { vinculoEstudantil: "", ehMenor: false, inaptoMenor14: false };
+  const birthYear = new Date(dataNasc).getFullYear();
+  const currentYear = new Date().getFullYear();
+  const ageThisYear = currentYear - birthYear;
+  if (ageThisYear <= 10) return { vinculoEstudantil: "Aluno da Olinto (Inapto)", ehMenor: true, inaptoMenor14: true };
+  if (ageThisYear <= 13) return { vinculoEstudantil: "Aluno da Arcanjo (Inapto)", ehMenor: true, inaptoMenor14: true };
+  if (ageThisYear === 14) return { vinculoEstudantil: "Aluno da Arcanjo", ehMenor: true, inaptoMenor14: false };
+  if (ageThisYear <= 17) return { vinculoEstudantil: "Aluno do Ensino Médio", ehMenor: true, inaptoMenor14: false };
+  return { vinculoEstudantil: "", ehMenor: false, inaptoMenor14: false };
+}
 
 /* ─── Helper: strip HTML for length validation ─── */
 function stripHtml(html: string): string {
@@ -262,6 +276,45 @@ function NovaPropostaInner() {
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const initializedRef = useRef(false);
 
+  /* ─── Member lookup state per index ─── */
+  const [memberLookups, setMemberLookups] = useState<Record<number, { loading: boolean; found: boolean | null; message?: string }>>({});
+  const leaderLoadedRef = useRef(false);
+
+  /* ─── Auto-fill leader (member 0) from session ─── */
+  useEffect(() => {
+    if (leaderLoadedRef.current) return;
+    leaderLoadedRef.current = true;
+    (async () => {
+      try {
+        const meRes = await fetch("/api/auth/me");
+        const meJson = await meRes.json();
+        if (!meJson.ok) return;
+        const { cpf: sessionCpf, nome: sessionNome } = meJson.user;
+        // Lookup municipal data for birth date
+        let dataNasc = "";
+        try {
+          const lookupRes = await fetch(`/api/municipes/lookup?cpf=${onlyDigits(sessionCpf)}`);
+          const lookupJson = await lookupRes.json();
+          if (lookupJson.ok && lookupJson.data.data_nasc) {
+            dataNasc = lookupJson.data.data_nasc;
+          }
+        } catch { /* ignore lookup failure */ }
+        const vinc = calcVinculo(dataNasc);
+        setState((s) => ({
+          ...s,
+          equipe: s.equipe.map((m, i) => i === 0 ? {
+            ...m,
+            cpf: onlyDigits(sessionCpf),
+            nome: sessionNome,
+            dataNasc,
+            vinculoEstudantil: vinc.vinculoEstudantil,
+            ehMenor: vinc.ehMenor,
+          } : m),
+        }));
+      } catch { /* ignore auth failure */ }
+    })();
+  }, []);
+
   useEffect(() => {
     fetch("/api/editais/abertos")
       .then((r) => r.json())
@@ -454,6 +507,45 @@ function NovaPropostaInner() {
       ],
     }));
   }
+
+  /* ─── CPF lookup for additional members ─── */
+  async function lookupMemberCpf(idx: number, rawCpf: string) {
+    const digits = onlyDigits(rawCpf);
+    if (digits.length !== 11 || !isValidCPF(digits)) return;
+    setMemberLookups((prev) => ({ ...prev, [idx]: { loading: true, found: null } }));
+    try {
+      const res = await fetch(`/api/municipes/lookup?cpf=${digits}`);
+      const json = await res.json();
+      if (json.ok) {
+        const vinc = calcVinculo(json.data.data_nasc);
+        setState((s) => ({
+          ...s,
+          equipe: s.equipe.map((m, i) => i === idx ? {
+            ...m,
+            cpf: digits,
+            nome: json.data.nome,
+            dataNasc: json.data.data_nasc || "",
+            vinculoEstudantil: vinc.vinculoEstudantil,
+            ehMenor: vinc.ehMenor,
+          } : m),
+        }));
+        setMemberLookups((prev) => ({ ...prev, [idx]: { loading: false, found: true } }));
+      } else {
+        setMemberLookups((prev) => ({ ...prev, [idx]: { loading: false, found: false, message: "CPF não encontrado no cadastro municipal. Preencha manualmente." } }));
+      }
+    } catch {
+      setMemberLookups((prev) => ({ ...prev, [idx]: { loading: false, found: false, message: "Falha na consulta. Preencha manualmente." } }));
+    }
+  }
+
+  /* ─── Check for ineligible members (under 14) ─── */
+  const hasIneligibleMember = useMemo(() => {
+    return state.equipe.some((m) => {
+      if (!m.dataNasc) return false;
+      const v = calcVinculo(m.dataNasc);
+      return v.inaptoMenor14;
+    });
+  }, [state.equipe]);
 
   async function submit() {
     setMsg(null);
@@ -697,42 +789,133 @@ function NovaPropostaInner() {
           </p>
 
           <div className="grid" style={{ gap: 16 }}>
-            {state.equipe.map((it, idx) => (
-              <div className="feature-card" key={idx} style={{ padding: 20, background: "var(--card-bg)" }}>
+            {state.equipe.map((it, idx) => {
+              const isLeader = idx === 0;
+              const lookup = memberLookups[idx];
+              const vinc = calcVinculo(it.dataNasc);
+              const isInapto = vinc.inaptoMenor14;
+              return (
+              <div className="feature-card" key={idx} style={{ padding: 20, background: "var(--card-bg)", borderColor: isInapto ? "rgba(239, 68, 68, 0.5)" : undefined }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                   <div className="badge">
-                    <strong>{idx === 0 ? "👑 Líder do Projeto" : `👨‍💻 Membro ${idx + 1}`}</strong>
+                    <strong>{isLeader ? "👑 Líder do Projeto" : `👨‍💻 Membro ${idx + 1}`}</strong>
                   </div>
+                  {isInapto && (
+                    <div className="badge" style={{ borderColor: "rgba(239,68,68,0.5)", color: "#f87171", fontSize: 12 }}>
+                      ⛔ Inapto (menor de 14 anos)
+                    </div>
+                  )}
                 </div>
-                
+
+                {/* CPF FIRST */}
                 <div className="grid two">
                   <div className="row">
-                    <div className="label">Nome Completo</div>
-                    <input className="input" value={it.nome} onChange={(e) => updateEq(idx, { nome: e.target.value })} />
+                    <div className="label">CPF</div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <input
+                        className="input"
+                        value={formatCPF(it.cpf)}
+                        onChange={(e) => {
+                          const digits = onlyDigits(e.target.value);
+                          updateEq(idx, { cpf: digits });
+                          // Auto-lookup when CPF is complete for non-leader members
+                          if (!isLeader && digits.length === 11 && isValidCPF(digits)) {
+                            lookupMemberCpf(idx, digits);
+                          }
+                        }}
+                        placeholder="000.000.000-00"
+                        inputMode="numeric"
+                        readOnly={isLeader}
+                        style={{ flex: 1, opacity: isLeader ? 0.7 : 1, background: isLeader ? "rgba(255,255,255,0.02)" : undefined }}
+                      />
+                      {!isLeader && (
+                        <button
+                          className="btn secondary"
+                          type="button"
+                          onClick={() => lookupMemberCpf(idx, it.cpf)}
+                          disabled={lookup?.loading || it.cpf.length < 11}
+                          style={{ whiteSpace: "nowrap", fontSize: 12, padding: "8px 14px" }}
+                        >
+                          {lookup?.loading ? "⏳" : "🔍 Buscar"}
+                        </button>
+                      )}
+                    </div>
+                    {isLeader && <p className="p" style={{ margin: "4px 0 0", fontSize: 12, color: "var(--muted)" }}>🔒 Preenchido automaticamente com sua conta</p>}
+                    {!isLeader && lookup?.found === false && (
+                      <div style={{ marginTop: 6, fontSize: 12, color: "#fbbf24", padding: "6px 10px", borderRadius: 8, background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)" }}>
+                        ⚠️ {lookup.message}
+                      </div>
+                    )}
+                    {!isLeader && lookup?.found === true && (
+                      <div style={{ marginTop: 6, fontSize: 12, color: "#4ade80", padding: "6px 10px", borderRadius: 8, background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.2)" }}>
+                        ✅ Dados encontrados! Preenchido automaticamente.
+                      </div>
+                    )}
                   </div>
                   <div className="row">
-                    <div className="label">CPF (somente números)</div>
-                    <input className="input" value={it.cpf} onChange={(e) => updateEq(idx, { cpf: e.target.value })} />
+                    <div className="label">Nome Completo</div>
+                    <input
+                      className="input"
+                      value={it.nome}
+                      onChange={(e) => updateEq(idx, { nome: e.target.value })}
+                      readOnly={isLeader || lookup?.found === true}
+                      style={{ opacity: (isLeader || lookup?.found === true) ? 0.7 : 1, background: (isLeader || lookup?.found === true) ? "rgba(255,255,255,0.02)" : undefined }}
+                    />
+                    {(isLeader || lookup?.found === true) && <p className="p" style={{ margin: "4px 0 0", fontSize: 12, color: "var(--muted)" }}>🔒 Preenchido via CPF</p>}
                   </div>
                 </div>
+
+                {/* Date of birth + auto-calculated school */}
                 <div className="grid two" style={{ marginTop: 12 }}>
                   <div className="row">
-                    <div className="label">Vínculo estudantil (opcional)</div>
-                    <input className="input" value={it.vinculoEstudantil || ""} onChange={(e) => updateEq(idx, { vinculoEstudantil: e.target.value })} placeholder="Escola e ano" />
+                    <div className="label">Data de Nascimento</div>
+                    <input
+                      className="input"
+                      type="date"
+                      value={it.dataNasc || ""}
+                      onChange={(e) => {
+                        const v = calcVinculo(e.target.value);
+                        updateEq(idx, { dataNasc: e.target.value, vinculoEstudantil: v.vinculoEstudantil, ehMenor: v.ehMenor });
+                      }}
+                      readOnly={isLeader || lookup?.found === true}
+                      style={{ opacity: (isLeader && it.dataNasc) || lookup?.found === true ? 0.7 : 1 }}
+                    />
                   </div>
+                  <div className="row">
+                    <div className="label">Vínculo Estudantil</div>
+                    <input
+                      className="input"
+                      value={it.vinculoEstudantil || ""}
+                      onChange={(e) => updateEq(idx, { vinculoEstudantil: e.target.value })}
+                      placeholder={it.dataNasc ? "Calculado automaticamente" : "Preencha a data de nascimento"}
+                      readOnly={!!it.dataNasc}
+                      style={{ opacity: it.dataNasc ? 0.7 : 1, color: isInapto ? "#f87171" : it.vinculoEstudantil ? "#4ade80" : undefined }}
+                    />
+                    {it.dataNasc && <p className="p" style={{ margin: "4px 0 0", fontSize: 12, color: "var(--muted)" }}>🏫 Calculado pela data de nascimento</p>}
+                  </div>
+                </div>
+
+                {/* Bolsa + Menor */}
+                <div className="grid two" style={{ marginTop: 12 }}>
                   <div className="row">
                     <div className="label">Parcela da Bolsa (%)</div>
                     <input className="input" type="number" min="0" max="100" value={it.percentualRateio} onChange={(e) => updateEq(idx, { percentualRateio: Number(e.target.value) })} style={{ color: "var(--accent)", fontWeight: 600 }} />
                   </div>
+                  <div className="row" style={{ display: "flex", alignItems: "center" }}>
+                    <label style={{ display: "flex", gap: 10, alignItems: "center", cursor: "pointer", padding: "10px 14px", background: "rgba(255,255,255,0.03)", borderRadius: 10, border: "1px solid var(--border)", width: "100%", marginTop: 20 }}>
+                      <input type="checkbox" checked={it.ehMenor} onChange={(e) => updateEq(idx, { ehMenor: e.target.checked })} disabled={!!it.dataNasc} style={{ width: 18, height: 18, accentColor: "var(--accent)" }} />
+                      <span className="p" style={{ margin: 0, fontWeight: 500 }}>Menor de 18 anos {it.dataNasc ? "(auto)" : ""}</span>
+                    </label>
+                  </div>
                 </div>
 
-                <label style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 16, cursor: "pointer", padding: "10px 14px", background: "rgba(255,255,255,0.03)", borderRadius: 10, border: "1px solid var(--border)" }}>
-                  <input type="checkbox" checked={it.ehMenor} onChange={(e) => updateEq(idx, { ehMenor: e.target.checked })} style={{ width: 18, height: 18, accentColor: "var(--accent)" }} />
-                  <span className="p" style={{ margin: 0, fontWeight: 500 }}>Este membro tem menos de 18 anos</span>
-                </label>
-
                 {it.ehMenor && (
-                  <div className="grid two" style={{ marginTop: 12, padding: 16, background: "rgba(245, 158, 11, 0.05)", borderLeft: "3px solid var(--warn)", borderRadius: "0 8px 8px 0" }}>
+                  <div className="grid two" style={{ marginTop: 12, padding: 16, background: isInapto ? "rgba(239, 68, 68, 0.05)" : "rgba(245, 158, 11, 0.05)", borderLeft: `3px solid ${isInapto ? "var(--bad)" : "var(--warn)"}`, borderRadius: "0 8px 8px 0" }}>
+                    {isInapto && (
+                      <div style={{ gridColumn: "1 / -1", padding: "10px 14px", borderRadius: 10, background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#fca5a5", fontSize: 13, marginBottom: 8 }}>
+                        ⛔ <strong>Art. 9º da Lei:</strong> Beneficiários a partir de 14 anos. Este membro é menor de 14 e não pode participar. Remova-o da equipe ou corrija a data de nascimento.
+                      </div>
+                    )}
                     <div className="row">
                       <div className="label">Nome do Responsável Legal</div>
                       <input className="input" value={it.responsavelLegal || ""} onChange={(e) => updateEq(idx, { responsavelLegal: e.target.value })} />
@@ -744,8 +927,17 @@ function NovaPropostaInner() {
                   </div>
                 )}
               </div>
-            ))}
+            );
+            })}
           </div>
+
+          {/* Ineligible member warning */}
+          {hasIneligibleMember && (
+            <div style={{ marginTop: 16, padding: "14px 20px", borderRadius: 12, background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.3)", color: "#fca5a5", fontSize: 14, lineHeight: 1.6 }}>
+              ⛔ <strong>Equipe com membro inapto:</strong> Há pelo menos um integrante com menos de 14 anos na equipe (Art. 9º). Remova ou corrija a data de nascimento para prosseguir.
+            </div>
+          )}
+
           <button className="cta-btn cta-btn--ghost" onClick={addMembro} type="button" style={{ marginTop: 20, width: "100%", justifyContent: "center" }}>
             + Adicionar outro membro
           </button>
@@ -924,10 +1116,10 @@ function NovaPropostaInner() {
             <button
               className="cta-btn cta-btn--primary"
               onClick={submitToAI}
-              disabled={aiLoading || editais.length === 0}
-              style={{ width: "100%", justifyContent: "center", padding: "16px", fontSize: 16, background: "linear-gradient(135deg, #8b5cf6, #a78bfa)", border: "none" }}
+              disabled={aiLoading || editais.length === 0 || hasIneligibleMember}
+              style={{ width: "100%", justifyContent: "center", padding: "16px", fontSize: 16, background: hasIneligibleMember ? "rgba(100,100,100,0.3)" : "linear-gradient(135deg, #8b5cf6, #a78bfa)", border: "none" }}
             >
-              {aiLoading ? "🧠 Analisando com I.A..." : "🤖 Submeter ao Analista I.A."}
+              {hasIneligibleMember ? "⛔ Equipe inapta — remova menores de 14" : aiLoading ? "🧠 Analisando com I.A..." : "🤖 Submeter ao Analista I.A."}
             </button>
 
             {/* AI Inline Result area */}
@@ -1067,7 +1259,7 @@ function NovaPropostaInner() {
                   type="button"
                   className="btn btn-submit"
                   onClick={submit}
-                  disabled={loading || (!aiResult && !aiError)}
+                  disabled={loading || (!aiResult && !aiError) || hasIneligibleMember}
                   style={{ padding: "16px 32px", fontSize: 16, marginTop: 14 }}
                 >
                   {loading ? "Enviando Proposta Oficial..." : (aiError ? "Finalizar sem Análise Prévia" : "Enviar Proposta Oficial para o Comitê")}
