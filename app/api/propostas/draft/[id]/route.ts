@@ -96,6 +96,14 @@ export async function PUT(req: Request, { params }: RouteContext) {
 }
 
 /**
+ * POST /api/propostas/draft/[id]
+ * Alias for PUT — needed because `navigator.sendBeacon` only sends POST.
+ */
+export async function POST(req: Request, ctx: RouteContext) {
+  return PUT(req, ctx);
+}
+
+/**
  * DELETE /api/propostas/draft/[id]
  * Deletes a draft proposal.
  */

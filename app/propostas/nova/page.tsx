@@ -75,49 +75,60 @@ const FIELD_LIMITS = {
   paginaPublicaPlano: 8000,
 } as const;
 
-/** Gemini-style word-by-word fading reasoning display */
+/** Gemini-style sentence-by-sentence reasoning display with evaporate/materialize effect */
 function ReasoningWordFade({ text }: { text: string }) {
-  const [displayParagraph, setDisplayParagraph] = useState("");
-  const [isExiting, setIsExiting] = useState(false);
-  const prevParagraphRef = useRef("");
+  const [activeSentence, setActiveSentence] = useState("");
+  const [phase, setPhase] = useState<"enter" | "exit">("enter");
+  const lastSentenceIdxRef = useRef(0);
+  const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    // Split by double newlines to get paragraphs, take the last non-empty one
-    const paragraphs = text.split(/\n\n+/).filter((p) => p.trim().length > 0);
-    const currentParagraph = paragraphs.length > 0 ? paragraphs[paragraphs.length - 1].trim() : "";
+    if (!text) return;
 
-    if (!currentParagraph) return;
+    // Split into sentences by period+space, newline, or "。"
+    const sentences = text
+      .split(/(?<=[.!?。\n])\s*/g)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 3);
 
-    // If it's a new paragraph (different from what's displayed), do the exit/enter transition
-    if (prevParagraphRef.current && currentParagraph !== prevParagraphRef.current && !currentParagraph.startsWith(prevParagraphRef.current)) {
-      setIsExiting(true);
-      const timer = setTimeout(() => {
-        setIsExiting(false);
-        setDisplayParagraph(currentParagraph);
-        prevParagraphRef.current = currentParagraph;
-      }, 350); // matches paragraph-exit animation duration
-      return () => clearTimeout(timer);
+    if (sentences.length === 0) return;
+
+    const latestIdx = sentences.length - 1;
+    const latest = sentences[latestIdx];
+
+    // Same sentence growing (more words streaming in) → just update
+    if (latestIdx === lastSentenceIdxRef.current) {
+      if (phase !== "enter") setPhase("enter");
+      setActiveSentence(latest);
+      return;
     }
 
-    // Otherwise just update (same paragraph growing with more words)
-    setDisplayParagraph(currentParagraph);
-    prevParagraphRef.current = currentParagraph;
+    // NEW sentence detected — evaporate the old one, then show new
+    lastSentenceIdxRef.current = latestIdx;
+    setPhase("exit");
+
+    if (exitTimerRef.current) clearTimeout(exitTimerRef.current);
+    exitTimerRef.current = setTimeout(() => {
+      setActiveSentence(latest);
+      setPhase("enter");
+    }, 400);
+
+    return () => { if (exitTimerRef.current) clearTimeout(exitTimerRef.current); };
   }, [text]);
 
-  const words = displayParagraph.split(/(\s+)/); // keep whitespace tokens
-  const WORD_DELAY = 40; // ms between each word appearing
+  const words = activeSentence.split(/(\s+)/);
 
   return (
-    <div className={`ai-reasoner-text ${isExiting ? "exiting" : ""}`}>
+    <div className={`ai-reasoner-text ${phase === "exit" ? "exiting" : ""}`}>
       {words.map((word, i) => {
-        if (/^\s+$/.test(word)) return word; // render whitespace directly
+        if (/^\s+$/.test(word)) return <span key={`ws-${i}`}>{word}</span>;
         return (
-          <span key={`${displayParagraph.slice(0, 20)}-${i}`} className="ai-word" style={{ animationDelay: `${i * WORD_DELAY}ms` }}>
+          <span key={`${lastSentenceIdxRef.current}-${i}`} className="ai-word" style={{ animationDelay: `${i * 35}ms` }}>
             {word}
           </span>
         );
       })}
-      <span className="ai-cursor" />
+      {phase === "enter" && <span className="ai-cursor" />}
     </div>
   );
 }
@@ -432,6 +443,25 @@ function NovaPropostaInner() {
 
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
   }, [state, aiResult]);
+
+  /* ─── Save on page unload (beforeunload) via sendBeacon ─── */
+  const stateRef = useRef(state);
+  const aiResultRef = useRef(aiResult);
+  const draftIdRef = useRef(draftId);
+  useEffect(() => { stateRef.current = state; }, [state]);
+  useEffect(() => { aiResultRef.current = aiResult; }, [aiResult]);
+  useEffect(() => { draftIdRef.current = draftId; }, [draftId]);
+
+  useEffect(() => {
+    function handleUnload() {
+      const id = draftIdRef.current;
+      if (!id) return;
+      const payload = JSON.stringify({ ...stateRef.current, aiAnalysisJson: aiResultRef.current });
+      navigator.sendBeacon(`/api/propostas/draft/${id}`, new Blob([payload], { type: "application/json" }));
+    }
+    globalThis.addEventListener("beforeunload", handleUnload);
+    return () => globalThis.removeEventListener("beforeunload", handleUnload);
+  }, []);
 
   /* ─── Auto-sync cronograma with duracaoMeses ─── */
   useEffect(() => {
@@ -1186,6 +1216,33 @@ function NovaPropostaInner() {
                   </div>
                 </div>
               )}
+
+              {/* "Still thinking" notice */}
+              <div style={{
+                marginTop: 24, padding: "18px 20px", borderRadius: 14,
+                background: "rgba(124, 92, 255, 0.04)",
+                border: "1px dashed rgba(124, 92, 255, 0.2)",
+                textAlign: "left",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                  <span style={{
+                    width: 8, height: 8, borderRadius: "50%",
+                    background: "#a78bfa", display: "inline-block",
+                    animation: "cursor-pulse 1.2s ease-in-out infinite",
+                  }} />
+                  <strong style={{ fontSize: 13, color: "#c4b5fd" }}>Carregando: A I.A. continua raciocinando e preparando sua análise.</strong>
+                </div>
+                <p className="p" style={{ margin: "0 0 6px", fontSize: 13, lineHeight: 1.6 }}>
+                  Assim que ficar pronto a tela será alterada. Não se preocupe se a tela ficou parada, sua resposta está chegando.
+                </p>
+                <p className="p" style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: "#86efac" }}>
+                  💾 Seu rascunho está sendo salvo automaticamente. Se precisar sair, você pode voltar depois — tudo estará preservado.
+                </p>
+              </div>
+
+              <p className="p" style={{ marginTop: 14, fontSize: 13, textAlign: "center", color: "var(--muted)" }}>
+                Após a análise ela te dará as notas e dicas do que melhorar, basta revisar a página. Terminou de revisar? Clique para enviar ao comitê!
+              </p>
             </div>
           )}
 
