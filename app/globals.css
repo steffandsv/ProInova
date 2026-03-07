@@ -993,34 +993,29 @@ a:hover {
   font-family: "Georgia", "Times New Roman", serif;
   font-style: italic;
   letter-spacing: 0.02em;
-  animation: paragraph-enter 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: paragraph-enter 0.2s ease-out;
 }
 
 .ai-reasoner-text.exiting {
-  animation: paragraph-exit 0.4s ease-in forwards;
+  animation: paragraph-exit 0.2s ease-in forwards;
 }
 
 .ai-word {
   display: inline;
   opacity: 0;
-  filter: blur(6px);
-  animation: word-materialize 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  filter: blur(3px);
+  animation: word-materialize 0.25s ease-out forwards;
 }
 
 @keyframes word-materialize {
   0% {
     opacity: 0;
-    filter: blur(6px);
-    color: #7c5cff;
-  }
-  40% {
-    opacity: 0.7;
-    filter: blur(2px);
+    filter: blur(3px);
     color: #a78bfa;
   }
-  70% {
-    opacity: 0.9;
-    filter: blur(0.5px);
+  60% {
+    opacity: 0.85;
+    filter: blur(0);
     color: #c4b5fd;
   }
   100% {
@@ -1031,13 +1026,13 @@ a:hover {
 }
 
 @keyframes paragraph-enter {
-  from { opacity: 0; transform: translateY(10px); filter: blur(2px); }
-  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes paragraph-exit {
-  from { opacity: 1; transform: translateY(0); filter: blur(0); }
-  to { opacity: 0; transform: translateY(-12px); filter: blur(6px); }
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-8px); filter: blur(3px); }
 }
 
 /* Pulsing glow cursor at the end of reasoning */

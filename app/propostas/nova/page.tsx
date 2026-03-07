@@ -75,7 +75,7 @@ const FIELD_LIMITS = {
   paginaPublicaPlano: 8000,
 } as const;
 
-/** Gemini-style sentence-by-sentence reasoning display with evaporate/materialize effect */
+/** Gemini-style paragraph-by-paragraph reasoning display with evaporate/materialize effect */
 function ReasoningWordFade({ text }: { text: string }) {
   const [activeSentence, setActiveSentence] = useState("");
   const [phase, setPhase] = useState<"enter" | "exit">("enter");
@@ -85,25 +85,25 @@ function ReasoningWordFade({ text }: { text: string }) {
   useEffect(() => {
     if (!text) return;
 
-    // Split into sentences by period+space, newline, or "。"
-    const sentences = text
-      .split(/(?<=[.!?。\n])\s*/g)
+    // Only split when there's a sentence-ending punctuation FOLLOWED by a newline
+    const paragraphs = text
+      .split(/(?<=[.!?。])\s*\n+/g)
       .map((s) => s.trim())
       .filter((s) => s.length > 3);
 
-    if (sentences.length === 0) return;
+    if (paragraphs.length === 0) return;
 
-    const latestIdx = sentences.length - 1;
-    const latest = sentences[latestIdx];
+    const latestIdx = paragraphs.length - 1;
+    const latest = paragraphs[latestIdx];
 
-    // Same sentence growing (more words streaming in) → just update
+    // Same paragraph growing (more words streaming in) → just update
     if (latestIdx === lastSentenceIdxRef.current) {
       if (phase !== "enter") setPhase("enter");
       setActiveSentence(latest);
       return;
     }
 
-    // NEW sentence detected — evaporate the old one, then show new
+    // NEW paragraph detected — evaporate the old one, then show new
     lastSentenceIdxRef.current = latestIdx;
     setPhase("exit");
 
@@ -111,7 +111,7 @@ function ReasoningWordFade({ text }: { text: string }) {
     exitTimerRef.current = setTimeout(() => {
       setActiveSentence(latest);
       setPhase("enter");
-    }, 400);
+    }, 200);
 
     return () => { if (exitTimerRef.current) clearTimeout(exitTimerRef.current); };
   }, [text]);
@@ -123,7 +123,7 @@ function ReasoningWordFade({ text }: { text: string }) {
       {words.map((word, i) => {
         if (/^\s+$/.test(word)) return <span key={`ws-${i}`}>{word}</span>;
         return (
-          <span key={`${lastSentenceIdxRef.current}-${i}`} className="ai-word" style={{ animationDelay: `${i * 35}ms` }}>
+          <span key={`${lastSentenceIdxRef.current}-${i}`} className="ai-word" style={{ animationDelay: `${i * 15}ms` }}>
             {word}
           </span>
         );
