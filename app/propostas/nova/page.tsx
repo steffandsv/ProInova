@@ -818,16 +818,28 @@ function NovaPropostaInner() {
               const lookup = memberLookups[idx];
               const vinc = calcVinculo(it.dataNasc);
               const isInapto = vinc.inaptoMenor14;
+              const isDuplicateCpf = it.cpf.length >= 11 && state.equipe.some((other, otherIdx) => otherIdx !== idx && other.cpf === it.cpf);
               return (
-              <div className="feature-card" key={idx} style={{ padding: 20, background: "var(--card-bg)", borderColor: isInapto ? "rgba(239, 68, 68, 0.5)" : undefined }}>
+              <div className="feature-card" key={idx} style={{ padding: 20, background: "var(--card-bg)", borderColor: isDuplicateCpf ? "rgba(239, 68, 68, 0.5)" : isInapto ? "rgba(239, 68, 68, 0.5)" : undefined }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                  <div className="badge">
-                    <strong>{isLeader ? "👑 Líder do Projeto" : `👨‍💻 Membro ${idx + 1}`}</strong>
-                  </div>
-                  {isInapto && (
-                    <div className="badge" style={{ borderColor: "rgba(239,68,68,0.5)", color: "#f87171", fontSize: 12 }}>
-                      ⛔ Inapto (menor de 14 anos)
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <div className="badge">
+                      <strong>{isLeader ? "👑 Líder do Projeto" : `👨‍💻 Membro ${idx + 1}`}</strong>
                     </div>
+                    {isInapto && (
+                      <div className="badge" style={{ borderColor: "rgba(239,68,68,0.5)", color: "#f87171", fontSize: 12 }}>
+                        ⛔ Inapto
+                      </div>
+                    )}
+                  </div>
+                  {!isLeader && (
+                    <button
+                      type="button"
+                      onClick={() => setState((s) => ({ ...s, equipe: s.equipe.filter((_, i) => i !== idx) }))}
+                      style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#f87171", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 0.2s" }}
+                    >
+                      ✕ Remover
+                    </button>
                   )}
                 </div>
 
@@ -873,6 +885,11 @@ function NovaPropostaInner() {
                     {!isLeader && lookup?.found === true && (
                       <div style={{ marginTop: 6, fontSize: 12, color: "#4ade80", padding: "6px 10px", borderRadius: 8, background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.2)" }}>
                         ✅ Dados encontrados! Preenchido automaticamente.
+                      </div>
+                    )}
+                    {isDuplicateCpf && (
+                      <div style={{ marginTop: 6, fontSize: 12, color: "#f87171", padding: "6px 10px", borderRadius: 8, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.3)" }}>
+                        ⛔ Este CPF já foi cadastrado em outro membro da equipe.
                       </div>
                     )}
                   </div>
