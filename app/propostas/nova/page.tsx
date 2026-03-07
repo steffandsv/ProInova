@@ -451,10 +451,6 @@ function NovaPropostaInner() {
     });
   }, [state.duracaoMeses]);
 
-  const indicadoresPlain = stripHtml(state.indicadores);
-  const riscosPlain = stripHtml(state.riscos);
-  const hasMetric = /(\b%\b|\bR\$\b|\bmin\b|\balunos\b|\busuários\b|\batendimentos\b)/i.test(indicadoresPlain);
-  const hasRisk = /(segurança|lgpd|risco|privacidade|fraude|manutenção|adesão|treinamento)/i.test(riscosPlain);
   const cronBad = state.cronograma.some(
     (i) => i.entregavel.trim().length < 10 || i.criterioAceitacao.trim().length < 10
   );
@@ -462,15 +458,13 @@ function NovaPropostaInner() {
 
   const scoreHints = useMemo(() => {
     const hints: string[] = [];
-    if (!hasMetric) hints.push("Indicadores parecem genéricos. Coloque número-base e meta (ex.: de X para Y).");
-    if (!hasRisk) hints.push("Riscos: cite pelo menos 1 risco operacional + 1 risco de adoção + mitigação.");
     if (cronBad)
       hints.push("Cronograma: cada mês precisa de entregável + critério de aceitação verificável.");
     if (Math.abs(rateioSum - 100) > 0.01 && rateioSum !== 0)
       hints.push("Atenção: A soma do percentual de rateio da bolsa da equipe deve ser 100% ou 0%.");
     if (!state.ipConcorda) hints.push("Você precisa concordar com os termos da Lei Municipal de Inovação.");
     return hints;
-  }, [hasMetric, hasRisk, cronBad, rateioSum, state.ipConcorda]);
+  }, [cronBad, rateioSum, state.ipConcorda]);
 
   function set<K extends keyof PropostaInput>(key: K, value: PropostaInput[K]) {
     setState((s) => ({ ...s, [key]: value }));
