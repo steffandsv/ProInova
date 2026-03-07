@@ -61,6 +61,53 @@ const FIELD_LIMITS = {
   paginaPublicaPlano: 8000,
 } as const;
 
+/** Gemini-style word-by-word fading reasoning display */
+function ReasoningWordFade({ text }: { text: string }) {
+  const [displayParagraph, setDisplayParagraph] = useState("");
+  const [isExiting, setIsExiting] = useState(false);
+  const prevParagraphRef = useRef("");
+
+  useEffect(() => {
+    // Split by double newlines to get paragraphs, take the last non-empty one
+    const paragraphs = text.split(/\n\n+/).filter((p) => p.trim().length > 0);
+    const currentParagraph = paragraphs.length > 0 ? paragraphs[paragraphs.length - 1].trim() : "";
+
+    if (!currentParagraph) return;
+
+    // If it's a new paragraph (different from what's displayed), do the exit/enter transition
+    if (prevParagraphRef.current && currentParagraph !== prevParagraphRef.current && !currentParagraph.startsWith(prevParagraphRef.current)) {
+      setIsExiting(true);
+      const timer = setTimeout(() => {
+        setIsExiting(false);
+        setDisplayParagraph(currentParagraph);
+        prevParagraphRef.current = currentParagraph;
+      }, 350); // matches paragraph-exit animation duration
+      return () => clearTimeout(timer);
+    }
+
+    // Otherwise just update (same paragraph growing with more words)
+    setDisplayParagraph(currentParagraph);
+    prevParagraphRef.current = currentParagraph;
+  }, [text]);
+
+  const words = displayParagraph.split(/(\s+)/); // keep whitespace tokens
+  const WORD_DELAY = 40; // ms between each word appearing
+
+  return (
+    <div className={`ai-reasoner-text ${isExiting ? "exiting" : ""}`}>
+      {words.map((word, i) => {
+        if (/^\s+$/.test(word)) return word; // render whitespace directly
+        return (
+          <span key={`${displayParagraph.slice(0, 20)}-${i}`} className="ai-word" style={{ animationDelay: `${i * WORD_DELAY}ms` }}>
+            {word}
+          </span>
+        );
+      })}
+      <span className="ai-cursor" />
+    </div>
+  );
+}
+
 /** Contador de caracteres inline, vermelho se exceder limite */
 function CharCounter({ value, max }: { value: string; max: number }) {
   const len = value.length;
@@ -892,9 +939,7 @@ function NovaPropostaInner() {
                 <span className="gradient-text">A I.A. está raciocinando...</span>
               </h3>
               <p className="p" style={{ maxWidth: 600, margin: "0 auto", color: "var(--muted)" }}>
-                Isso pode levar de 15 a 30 segundos. Estamos lendo cada detalhe da sua proposta para garantir que ela atenda aos padrões da Inovação Municipal.
-                <br /><br />
-                <strong>Carregando:</strong> A I.A continua raciocinando e preparando sua análise. Assim que ficar pronto a tela será alterada. Não se preocupe se a tela ficou parada, sua resposta está chegando.
+                Isso pode levar de 15 a 30 segundos. Estamos lendo cada detalhe da sua proposta.
               </p>
 
               {aiReasoningText && (
@@ -903,8 +948,8 @@ function NovaPropostaInner() {
                      <span style={{ fontSize: 20 }}>🧠</span>
                      <strong style={{ fontSize: 13, textTransform: "uppercase", letterSpacing: 1, color: "var(--muted)" }}>Pensamento da Máquina</strong>
                   </div>
-                  <div className="ai-reasoner-text">
-                    {aiReasoningText}
+                  <div className="ai-reasoner-container">
+                    <ReasoningWordFade text={aiReasoningText} />
                   </div>
                 </div>
               )}

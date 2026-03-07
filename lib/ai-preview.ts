@@ -151,34 +151,36 @@ Responda EXCLUSIVAMENTE com um objeto JSON válido (sem markdown codeblocks, sem
   "overallScore": <número 0-10 com 1 decimal>,
   "verdict": "<APROVAÇÃO PROVÁVEL|COM RESSALVAS|NECESSITA REVISÃO>",
   "fieldHints": {
-    "problema": "<Dica curta de como melhorar a escrita ou dados do problema>",
-    "publicoAlvo": "<Dica curta...>",
-    "propostaValor": "<Dica curta...>",
-    "solucao": "<Dica curta...>",
-    "metodologia": "<Dica curta...>",
-    "viabilidade": "<Dica curta...>",
-    "riscos": "<Dica curta...>",
-    "indicadores": "<Dica curta...>",
-    "cronograma": "<Dica curta sobre o cronograma de meses>",
-    "orcamentoRateio": "<Dica curta...>"
+    "problema": "<baseado no texto do usuário, diga o que está fraco e como melhorar>",
+    "publicoAlvo": "<baseado no texto do usuário...>",
+    "propostaValor": "<baseado no texto do usuário...>",
+    "solucao": "<baseado no texto do usuário...>",
+    "metodologia": "<baseado no texto do usuário...>",
+    "viabilidade": "<baseado no texto do usuário...>",
+    "riscos": "<baseado no texto do usuário...>",
+    "indicadores": "<baseado no texto do usuário...>",
+    "cronograma": "<baseado no texto do usuário...>",
+    "orcamentoRateio": "<baseado no texto do usuário...>"
   },
   "thoughts": [
     {
       "category": "Viabilidade da Equipe e Técnica",
       "emoji": "🎯",
       "score": <0-10>,
-      "comment": "<Aponte 1 Ponto Forte e 1 Melhoria de forma pedagógica (Ex: Útil, mas faltou detalhar...).>"
+      "comment": "<✅ Ponto forte: [cite algo específico que o usuário escreveu bem]. ⚠️ Melhoria: [diga exatamente o que está fraco, citando trechos, e como corrigir]."
     },
     ... (para as 6 categorias)
   ]
 }
 
-IMPORTANTE:
+REGRAS CRUCIAIS:
 - overallScore = média ponderada (Adequação à Lei peso 2, Relevância peso 1.5, resto peso 1).
 - verdict: >= 7 → "APROVAÇÃO PROVÁVEL", 5–6.9 → "COM RESSALVAS", < 5 → "NECESSITA REVISÃO".
-- JUSTIFIQUE SUAS NOTAS: Se você der uma nota abaixo de 8 ou 9, OBRIGATORIAMENTE explique em "comment" de forma clara, técnica e pedagógica qual lacuna ou ponto cego da proposta gerou essa dedução de nota. O proponente precisa saber EXATAMENTE o que melhorar. Nunca dê uma nota mediana sem justificar o porquê.
-- IMPORTANTE 2: Em "fieldHints", para CADA UMA das chaves solicitadas, gere uma DICA CURTA, DIRETA e ENCORAJADORA (máximo 1 ou 2 frases curtas com 1 emoji) orientando o usuário sobre o que exatamente faltou naquele campo da proposta ou o que ele pode melhorar para o Comitê aprovar mais facilmente. Se o campo estiver perfeito, elogie brevemente. Ele lerá isso ENQUANTO preenche o formulário.
-- Você está conversando com o autor da proposta. Seja MUITO gentil, acolhedor, mas criterioso. Relacione sua avaliação à escala de Jaborandi e aos recursos do C.TECH.`;
+- PROIBIDO DAR DICAS GENÉRICAS. Toda dica DEVE referenciar o conteúdo real que o usuário digitou. Exemplo RUIM: "Detalhe melhor sua metodologia". Exemplo BOM: "Você mencionou 'usar tecnologia para melhorar' mas não especificou QUAL tecnologia. Adicione: qual ferramenta, em que etapa, e qual resultado mensurável esperado".
+- Em "thoughts", CADA comment DEVE conter: (1) ✅ um ponto forte real da proposta citando o que o usuário escreveu de bom, e (2) ⚠️ uma melhoria específica dizendo exatamente O QUE está ruim e COMO consertar, referenciando o texto do usuário.
+- Em "fieldHints", analise O QUE O USUÁRIO REALMENTE ESCREVEU naquele campo e diga: o que está bom, o que faltou, o que está vago. Se estiver ótimo, elogie citando o trecho. Cada hint tem no máximo 2 frases + 1 emoji.
+- Se der nota abaixo de 8, OBRIGATORIAMENTE explique em "comment" qual lacuna específica causou a dedução, citando o texto.
+- Você está conversando com o autor. Seja gentil, acolhedor, mas ESPECÍFICO. Nada de conselhos vagos. Relacione à escala de Jaborandi (7mil hab) e ao C.TECH.`;
 }
 
 /* ─── API Streaming Orchestrator ─── */
