@@ -909,11 +909,9 @@ function NovaPropostaInner() {
                       className="input"
                       value={it.vinculoEstudantil || ""}
                       onChange={(e) => updateEq(idx, { vinculoEstudantil: e.target.value })}
-                      placeholder={it.dataNasc ? "Calculado automaticamente" : "Preencha a data de nascimento"}
-                      readOnly={!!it.dataNasc}
-                      style={{ opacity: it.dataNasc ? 0.7 : 1, color: isInapto ? "#f87171" : it.vinculoEstudantil ? "#4ade80" : undefined }}
+                      placeholder={it.dataNasc ? "Sugestão automática — editável" : "Escola e ano"}
+                      style={{ color: isInapto ? "#f87171" : it.vinculoEstudantil ? "#4ade80" : undefined }}
                     />
-                    {it.dataNasc && <p className="p" style={{ margin: "4px 0 0", fontSize: 12, color: "var(--muted)" }}>🏫 Calculado pela data de nascimento</p>}
                   </div>
                 </div>
 
