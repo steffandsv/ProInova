@@ -33,6 +33,7 @@ export default function AppHeader() {
       <nav className="nav">
         <Link href="/">Início</Link>
         <Link href="/transparencia">Transparência</Link>
+        <Link href="/ideias">💡 Ideias</Link>
         <a href="/LEI.pdf" target="_blank" rel="noopener noreferrer" title="Consulte a Lei Municipal de Inovação">📋 Lei</a>
         {checked && !user && (
           <div style={{ display: "flex", gap: 8, alignItems: "center", marginLeft: 8 }}>

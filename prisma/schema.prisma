@@ -286,3 +286,17 @@ model AuditLog {
   @@index([userId])
   @@index([createdAt])
 }
+
+// ─── Banco de Ideias ─────────────────────────────────────────────────
+
+model Ideia {
+  id          String   @id @default(cuid())
+  cpf         String   @db.VarChar(11)
+  nomeAutor   String   @db.VarChar(255)
+  titulo      String   @db.VarChar(255)
+  descricao   String   @db.Text
+  createdAt   DateTime @default(now())
+
+  @@index([cpf])
+  @@index([createdAt])
+}
