@@ -464,6 +464,7 @@ function InnovationExplainerSection() {
 
       <div className="innovation-widget">
         <div className="triangle-container">
+          <div className="triangle-glow" style={{ background: statusColor }} />
           <svg viewBox="0 0 300 300" className="triangle-svg">
             <polygon points={basePolygon} fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="2" strokeDasharray="5 5" />
             <line x1="150" y1="150" x2={bqX} y2={bqY} stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
@@ -487,14 +488,15 @@ function InnovationExplainerSection() {
             <text x="30" y="240" fill="var(--text)" fontSize="13" textAnchor="start" fontWeight="bold">Tempo (-)</text>
             <text x="270" y="240" fill="var(--text)" fontSize="13" textAnchor="end" fontWeight="bold">Custo (-)</text>
           </svg>
-
-          <div className="status-box" style={{ borderColor: `${statusColor}44` }}>
-            <h3 style={{ color: statusColor, margin: "0 0 6px 0", fontSize: "18px", transition: "color 0.4s" }}>{status}</h3>
-            <p style={{ margin: 0, fontSize: "14px", color: "var(--text)", lineHeight: 1.5, opacity: 0.9 }}>{message}</p>
-          </div>
         </div>
 
-        <div className="sliders-container">
+        <div className="innovation-controls">
+          <div className="status-box" style={{ borderColor: statusColor, boxShadow: `0 0 20px ${statusColor}22` }}>
+            <h3 style={{ color: statusColor, margin: "0 0 6px 0", fontSize: "20px", transition: "color 0.4s" }}>{status}</h3>
+            <p style={{ margin: 0, fontSize: "15px", color: "var(--text)", lineHeight: 1.5, opacity: 0.9 }}>{message}</p>
+          </div>
+
+          <div className="sliders-container">
           <div className="slider-group">
             <label>
               ⏳ Duração (Tempo)
@@ -528,6 +530,7 @@ function InnovationExplainerSection() {
           >
             🔄 Resetar Simulação
           </button>
+          </div>
         </div>
       </div>
     </section>
