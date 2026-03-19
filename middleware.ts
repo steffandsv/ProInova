@@ -47,10 +47,12 @@ const PUBLIC_ROUTES = [
   "/api/transparencia",
   "/api/projeto",
   "/api/editais/abertos",
+  "/api/lancamento",
   "/login",
   "/cadastro",
   "/transparencia",
   "/projeto",
+  "/lancamento",
   "/",
 ];
 

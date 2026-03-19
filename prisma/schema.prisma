@@ -300,3 +300,15 @@ model Ideia {
   @@index([cpf])
   @@index([createdAt])
 }
+
+// ─── Inscrição no Lançamento do Programa ─────────────────────────────
+
+model InscricaoLancamento {
+  id        String   @id @default(cuid())
+  cpf       String   @unique @db.VarChar(11)
+  nome      String   @db.VarChar(255)
+  idade     Int?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
