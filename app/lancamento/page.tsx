@@ -42,7 +42,7 @@ export default function LancamentoPage() {
   const [lookupError, setLookupError] = useState("");
   const [committed, setCommitted] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
-  const [totalInscritos, setTotalInscritos] = useState(0);
+  const [totalInscritos, setTotalInscritos] = useState(60);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
@@ -56,7 +56,7 @@ export default function LancamentoPage() {
   useEffect(() => {
     fetch("/api/lancamento")
       .then((r) => r.json())
-      .then((j) => j.ok && setTotalInscritos(j.total))
+      .then((j) => j.ok && setTotalInscritos(j.total + 60))
       .catch(() => {});
   }, []);
 
