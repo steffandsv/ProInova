@@ -82,6 +82,7 @@ export default function PainelPage() {
               <Link href="/admin/editais" className="btn secondary" style={{ borderColor: "rgba(245, 158, 11, 0.2)" }}>📋 Gestão de Editais</Link>
               <Link href="/admin/propostas" className="btn secondary" style={{ borderColor: "rgba(245, 158, 11, 0.2)" }}>📄 Avaliar Propostas</Link>
               <Link href="/admin/pagamentos" className="btn secondary" style={{ borderColor: "rgba(245, 158, 11, 0.2)" }}>💰 Liberação de Pagamentos</Link>
+              <Link href="/admin/lancamento" className="btn secondary" style={{ borderColor: "rgba(34, 197, 94, 0.3)", background: "rgba(34, 197, 94, 0.08)" }}>🚀 Inscrições Lançamento</Link>
             </div>
           </div>
         )}
