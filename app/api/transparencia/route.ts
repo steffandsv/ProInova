@@ -8,7 +8,7 @@ export async function GET() {
   try {
     const projetos = await prisma.proposta.findMany({
       where: {
-        status: { in: ["EM_EXECUCAO", "CONCLUIDA"] },
+        status: { in: ["CLASSIFICADA", "HOMOLOGADA", "TERMO_OUTORGA", "EM_EXECUCAO", "CONCLUIDA", "SUSPENSA", "CANCELADA"] },
       },
       select: {
         id: true,
@@ -27,6 +27,11 @@ export async function GET() {
           where: { status: "VALIDADO" },
           select: { id: true },
         },
+        avaliacoes: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: { parecer: true }
+        }
       },
       orderBy: { createdAt: "desc" },
     });
@@ -45,6 +50,7 @@ export async function GET() {
       marcosValidados: p.marcos.length,
       progresso: p._count.marcos > 0 ? Math.round((p.marcos.length / p._count.marcos) * 100) : 0,
       createdAt: p.createdAt,
+      parecer: p.avaliacoes[0]?.parecer || null,
     }));
 
     return NextResponse.json({ ok: true, data: result });
