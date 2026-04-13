@@ -10,6 +10,8 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
 
   const [parecerTexto, setParecerTexto] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [decisao, setDecisao] = useState<"APROVADA" | "REPROVADA" | "DILIGENCIA" | "">("");
+  const [diligenciaTexto, setDiligenciaTexto] = useState("");
 
   useEffect(() => {
     fetch(`/api/admin/propostas/${params.id}`)
@@ -55,9 +57,10 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
     CONCLUIDA: "#22c55e",
   };
 
-  async function handleTransition(to: string) {
+  async function handleTransition(to: string, parecerOverride?: string) {
     setIsSubmitting(true);
     setError("");
+    const textToSend = parecerOverride !== undefined ? parecerOverride : parecerTexto;
     try {
       const res = await fetch(`/api/admin/propostas/${params.id}/avaliar`, {
         method: "POST",
@@ -65,7 +68,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
         body: JSON.stringify({
           action: "TRANSITION",
           nextStatus: to,
-          parecerTexto,
+          parecerTexto: textToSend,
         }),
       });
       const json = await res.json();
@@ -152,50 +155,110 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
           {/* ======================= TELA DE AVALIAÇÃO / TRANSIÇÃO ======================= */}
           {data.availableTransitions?.length > 0 && (
             <div className="card" style={{ borderColor: "var(--accent)", background: "rgba(0,123,255,0.05)" }}>
-              <h2 className="h2" style={{ color: "var(--accent)", marginBottom: 14 }}>Ações de Workflow Disponíveis</h2>
-              <p className="p">Seu perfil tem permissão para atuar nesta proposta no estágio atual.</p>
+              <h2 className="h2" style={{ color: "var(--accent)", marginBottom: 14 }}>Avaliação da Proposta</h2>
+              <p className="p">Seu perfil tem permissão para decidir o avanço desta proposta.</p>
               
               <div className="row" style={{ marginTop: 14 }}>
-                <div className="label">Parecer / Observação (Ficará no Histórico)</div>
+                <div className="label">Decisão</div>
+                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", flexDirection: "column" }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: "var(--card-bg)", padding: "10px 14px", borderRadius: 8, border: "1px solid " + (decisao === "APROVADA" ? "#10b981" : "var(--border)") }}>
+                    <input type="radio" name="decisao" value="APROVADA" checked={decisao === "APROVADA"} onChange={() => setDecisao("APROVADA")} style={{ width: 18, height: 18 }} />
+                    <span style={{ fontWeight: 600 }}>✅ APROVADA</span> <span style={{ color: "var(--muted)", fontSize: 13 }}>— Avançar para próxima etapa</span>
+                  </label>
+                  <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: "var(--card-bg)", padding: "10px 14px", borderRadius: 8, border: "1px solid " + (decisao === "REPROVADA" ? "#ef4444" : "var(--border)") }}>
+                    <input type="radio" name="decisao" value="REPROVADA" checked={decisao === "REPROVADA"} onChange={() => setDecisao("REPROVADA")} style={{ width: 18, height: 18 }} />
+                    <span style={{ fontWeight: 600 }}>❌ REPROVADA</span> <span style={{ color: "var(--muted)", fontSize: 13 }}>— Encerrar / suspender proposta</span>
+                  </label>
+                  <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: "var(--card-bg)", padding: "10px 14px", borderRadius: 8, border: "1px solid " + (decisao === "DILIGENCIA" ? "#f59e0b" : "var(--border)") }}>
+                    <input type="radio" name="decisao" value="DILIGENCIA" checked={decisao === "DILIGENCIA"} onChange={() => setDecisao("DILIGENCIA")} style={{ width: 18, height: 18 }} />
+                    <span style={{ fontWeight: 600 }}>🔄 DILIGÊNCIA</span> <span style={{ color: "var(--muted)", fontSize: 13 }}>— Devolver para ajustes do proponente</span>
+                  </label>
+                </div>
+              </div>
+
+              {decisao === "DILIGENCIA" && (
+                <div className="row" style={{ marginTop: 14 }}>
+                  <div className="label">Oque exatamente precisa ser ajustado? (Resposta extra para Diligência)</div>
+                  <textarea 
+                    className="textarea" 
+                    value={diligenciaTexto} 
+                    onChange={(e) => setDiligenciaTexto(e.target.value)} 
+                    placeholder="Especifique os pontos que o proponente precisa alterar em sua submissão..." 
+                    style={{ borderColor: "#f59e0b" }}
+                    required
+                  />
+                </div>
+              )}
+
+              <div className="row" style={{ marginTop: 14 }}>
+                <div className="label">Parecer / Observação {decisao === "DILIGENCIA" ? "(Justificativa Interna)" : "(Ficará no Histórico)"}</div>
                 <textarea 
                   className="textarea" 
                   value={parecerTexto} 
                   onChange={(e) => setParecerTexto(e.target.value)} 
-                  placeholder="Descreva o motivo da aprovação ou necessidade de ajustes..." 
+                  placeholder={
+                    decisao === "DILIGENCIA" 
+                      ? "Escreva a justificativa para a diligência..." 
+                      : "Descreva o motivo da aprovação ou reprovação..."
+                  }
                   required
                 />
               </div>
 
-              <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" }}>
-                {data.availableTransitions.map((t: any) => {
-                  if (t.from === "AVALIACAO_CMAA" && t.to === "CLASSIFICADA") {
+              <div style={{ marginTop: 20, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                {(() => {
+                  if (!decisao) return <p className="p" style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>Selecione uma decisão acima para continuar.</p>;
+
+                  const forwards = ["PARECER_EDUCACAO", "AVALIACAO_CMAA", "CLASSIFICADA", "HOMOLOGADA", "TERMO_OUTORGA", "EM_EXECUCAO", "CONCLUIDA"];
+                  const backwards = ["SUBMETIDA", "EM_TRIAGEM", "PARECER_EDUCACAO", "RASCUNHO"];
+                  const cancels = ["SUSPENSA", "CANCELADA"];
+                  
+                  let targetStatus: string | null = null;
+                  if (decisao === "APROVADA") {
+                    targetStatus = data.availableTransitions.find((t: any) => forwards.includes(t.to))?.to || null;
+                  } else if (decisao === "REPROVADA") {
+                    targetStatus = data.availableTransitions.find((t: any) => cancels.includes(t.to))?.to || null;
+                  } else if (decisao === "DILIGENCIA") {
+                    targetStatus = data.availableTransitions.find((t: any) => backwards.includes(t.to))?.to || null;
+                  }
+
+                  if (!targetStatus) {
+                    return <p className="p" style={{ fontSize: 13, color: "var(--bad)", margin: 0 }}>Não há transição configurada para esta decisão no estágio atual.</p>;
+                  }
+
+                  // Handle CMAA Matrix Route
+                  if (data.status === "AVALIACAO_CMAA" && decisao === "APROVADA" && targetStatus === "CLASSIFICADA") {
                     return (
-                      <Link key={t.to} href={`/admin/propostas/${data.id}/avaliar`} className="btn">
+                      <Link href={`/admin/propostas/${data.id}/avaliar`} className="cta-btn cta-btn--primary">
                         📋 Ir para Matriz de Avaliação CMAA
                       </Link>
                     );
                   }
-                  if (t.from === "HOMOLOGADA" && t.to === "TERMO_OUTORGA") {
+                  
+                  // Handle Termo Outorga
+                  if (data.status === "HOMOLOGADA" && decisao === "APROVADA" && targetStatus === "TERMO_OUTORGA") {
                     return (
-                      <Link key={t.to} href={`/admin/propostas/${data.id}/termo`} className="btn">
+                      <Link href={`/admin/propostas/${data.id}/termo`} className="cta-btn cta-btn--primary">
                         📄 Gerar Termo de Outorga
                       </Link>
                     );
                   }
 
-                  const isBackward = ["SUBMETIDA", "EM_TRIAGEM", "SUSPENSA", "CANCELADA"].includes(t.to);
-                  
                   return (
                     <button 
-                      key={t.to} 
-                      className={isBackward ? "btn secondary" : "btn"} 
-                      onClick={() => handleTransition(t.to)}
-                      disabled={isSubmitting || (t.from !== "RASCUNHO" && !parecerTexto && !isBackward)}
+                      className={decisao === "APROVADA" ? "cta-btn cta-btn--primary" : decisao === "REPROVADA" ? "btn secondary" : "btn"} 
+                      onClick={() => {
+                        const finalParecer = decisao === "DILIGENCIA" && diligenciaTexto.trim() 
+                          ? `[DILIGÊNCIA SOLICITADA]: ${diligenciaTexto}\n\n[PARECER INTERNO]: ${parecerTexto}`
+                          : parecerTexto;
+                        handleTransition(targetStatus, finalParecer);
+                      }}
+                      disabled={isSubmitting || !parecerTexto.trim() || (decisao === "DILIGENCIA" && !diligenciaTexto.trim())}
                     >
-                      {isSubmitting ? "..." : `Mover para ${t.to}`}
+                      {isSubmitting ? "Processando..." : `Confirmar Decisão (Avança para ${targetStatus})`}
                     </button>
                   );
-                })}
+                })()}
               </div>
             </div>
           )}
