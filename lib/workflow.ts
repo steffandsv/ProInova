@@ -63,6 +63,7 @@ export function findTransition(
     if (t.from !== from || t.to !== to) return false;
     if (!t.roles.includes(userRole)) return false;
     if (t.requiresEducacao && modalidade !== "EDUCACAO") return false;
+    if (t.from === "EM_TRIAGEM" && t.to === "AVALIACAO_CMAA" && modalidade === "EDUCACAO") return false;
     return true;
   }) || null;
 }
@@ -76,6 +77,7 @@ export function getAvailableTransitions(
     if (t.from !== currentStatus) return false;
     if (!t.roles.includes(userRole)) return false;
     if (t.requiresEducacao && modalidade !== "EDUCACAO") return false;
+    if (t.from === "EM_TRIAGEM" && t.to === "AVALIACAO_CMAA" && modalidade === "EDUCACAO") return false;
     return true;
   });
 }

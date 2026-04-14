@@ -209,8 +209,8 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                 {(() => {
                   if (!decisao) return <p className="p" style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>Selecione uma decisão acima para continuar.</p>;
 
-                  const forwards = ["PARECER_EDUCACAO", "AVALIACAO_CMAA", "CLASSIFICADA", "HOMOLOGADA", "TERMO_OUTORGA", "EM_EXECUCAO", "CONCLUIDA"];
-                  const backwards = ["SUBMETIDA", "EM_TRIAGEM", "PARECER_EDUCACAO", "RASCUNHO"];
+                  const forwards = ["SUBMETIDA", "EM_TRIAGEM", "PARECER_EDUCACAO", "AVALIACAO_CMAA", "CLASSIFICADA", "HOMOLOGADA", "TERMO_OUTORGA", "EM_EXECUCAO", "CONCLUIDA"];
+                  const backwards = ["RASCUNHO", "SUBMETIDA", "EM_TRIAGEM", "PARECER_EDUCACAO"];
                   const cancels = ["SUSPENSA", "CANCELADA"];
                   
                   let targetStatus: string | null = null;
