@@ -13,6 +13,30 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
   const [decisao, setDecisao] = useState<"APROVADA" | "REPROVADA" | "DILIGENCIA" | "">("");
   const [diligenciaTexto, setDiligenciaTexto] = useState("");
 
+  const [editingParecerId, setEditingParecerId] = useState<string | null>(null);
+  const [editingParecerText, setEditingParecerText] = useState("");
+
+  async function handleEditParecer(avId: string) {
+    if (!editingParecerText.trim()) return;
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`/api/admin/avaliacoes/${avId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ parecer: editingParecerText }),
+      });
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        alert("Erro ao editar parecer.");
+      }
+    } catch {
+      alert("Falha ao salvar parecer");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   useEffect(() => {
     fetch(`/api/admin/propostas/${params.id}`)
       .then((r) => r.json())
@@ -472,12 +496,30 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
               <div style={{ marginBottom: 20 }}>
                 <h4 style={{ fontSize: 13, marginBottom: 10, color: "var(--muted)" }}>Pareceres Técnicos</h4>
                 {data.avaliacoes.map((av: any, i: number) => (
-                  <div key={i} style={{ padding: 10, background: "rgba(255,255,255,0.02)", borderRadius: 6, marginBottom: 10, fontSize: 13, overflow: "hidden" }}>
+                  <div key={av.id} style={{ padding: 10, background: "rgba(255,255,255,0.02)", borderRadius: 6, marginBottom: 10, fontSize: 13, overflow: "hidden" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-                      <strong>{av.avaliador.nome} <span className="badge">{av.etapa}</span></strong>
-                      <span style={{ color: "var(--muted)" }}>{new Date(av.createdAt).toLocaleString("pt-BR")}</span>
+                      <strong>{av.avaliador?.nome || "Avaliador Desconhecido"} <span className="badge">{av.etapa}</span></strong>
+                      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                        <span style={{ color: "var(--muted)" }}>{new Date(av.createdAt).toLocaleString("pt-BR")}</span>
+                        <button className="btn secondary" style={{ padding: "2px 8px", fontSize: 11 }} onClick={() => {
+                          setEditingParecerId(av.id);
+                          setEditingParecerText(av.parecer);
+                        }}>Editar</button>
+                      </div>
                     </div>
-                    <div className="prose" style={{ marginTop: 5 }}>{av.parecer}</div>
+                    {editingParecerId === av.id ? (
+                      <div style={{ marginTop: 10 }}>
+                        <textarea className="textarea" value={editingParecerText} onChange={e => setEditingParecerText(e.target.value)} rows={5} />
+                        <div style={{ display: "flex", gap: 10, marginTop: 5 }}>
+                          <button className="btn" onClick={() => handleEditParecer(av.id)} disabled={isSubmitting}>
+                            {isSubmitting ? "Salvando..." : "Salvar Alteração"}
+                          </button>
+                          <button className="btn secondary" onClick={() => setEditingParecerId(null)}>Cancelar</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="prose" style={{ marginTop: 5, whiteSpace: "pre-wrap" }}>{av.parecer}</div>
+                    )}
                     {av.notaFinal !== null && <p style={{ marginTop: 5 }}><strong>Nota Final:</strong> {av.notaFinal}</p>}
                     <p style={{ marginTop: 5, color: av.aprovado ? "var(--good)" : "var(--bad)" }}>
                       Decisão: {av.aprovado ? "Aprovado" : "Rejeitado / Com Falhas"}
