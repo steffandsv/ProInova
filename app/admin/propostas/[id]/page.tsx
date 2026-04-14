@@ -215,9 +215,11 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                   
                   let targetStatus: string | null = null;
                   if (decisao === "APROVADA") {
-                    targetStatus = data.availableTransitions.find((t: any) => forwards.includes(t.to))?.to || null;
+                    targetStatus = data.availableTransitions.find((t: any) => t.to === "HOMOLOGADA")?.to
+                                || data.availableTransitions.find((t: any) => forwards.includes(t.to))?.to || null;
                   } else if (decisao === "REPROVADA") {
-                    targetStatus = data.availableTransitions.find((t: any) => cancels.includes(t.to))?.to || null;
+                    targetStatus = data.availableTransitions.find((t: any) => t.to === "CANCELADA")?.to
+                                || data.availableTransitions.find((t: any) => cancels.includes(t.to))?.to || null;
                   } else if (decisao === "DILIGENCIA") {
                     targetStatus = data.availableTransitions.find((t: any) => backwards.includes(t.to))?.to || null;
                   }

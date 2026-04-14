@@ -51,6 +51,18 @@ export const WORKFLOW_TRANSITIONS: TransitionRule[] = [
   { from: "EM_TRIAGEM", to: "SUBMETIDA", roles: ["TRIAGEM", "ADMIN"] },
   { from: "PARECER_EDUCACAO", to: "EM_TRIAGEM", roles: ["EDUCACAO", "ADMIN"] },
   { from: "AVALIACAO_CMAA", to: "EM_TRIAGEM", roles: ["CMAA", "ADMIN"] },
+
+  // --- Atalhos Diretos (Fast-paths) para ADMIN ---
+  { from: "SUBMETIDA", to: "HOMOLOGADA", roles: ["ADMIN"] },
+  { from: "EM_TRIAGEM", to: "HOMOLOGADA", roles: ["ADMIN"] },
+  { from: "PARECER_EDUCACAO", to: "HOMOLOGADA", roles: ["ADMIN"] },
+  { from: "AVALIACAO_CMAA", to: "HOMOLOGADA", roles: ["ADMIN"] },
+
+  { from: "SUBMETIDA", to: "CANCELADA", roles: ["ADMIN"] },
+  { from: "EM_TRIAGEM", to: "CANCELADA", roles: ["ADMIN"] },
+  { from: "PARECER_EDUCACAO", to: "CANCELADA", roles: ["ADMIN"] },
+  { from: "AVALIACAO_CMAA", to: "CANCELADA", roles: ["ADMIN"] },
+  { from: "CLASSIFICADA", to: "CANCELADA", roles: ["ADMIN"] },
 ];
 
 export function findTransition(
