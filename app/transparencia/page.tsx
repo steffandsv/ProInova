@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import ModalProjeto from "./ModalProjeto";
 
 type ProjetoPublico = {
   id: string;
@@ -18,12 +19,14 @@ type ProjetoPublico = {
   progresso: number;
   createdAt: string;
   parecer: string | null;
+  sigiloso?: boolean;
 };
 
 export default function TransparenciaPage() {
   const [projetos, setProjetos] = useState<ProjetoPublico[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState<"ALL" | "APROVADA" | "EM_EXECUCAO" | "CONCLUIDA" | "REPROVADA">("APROVADA");
+  const [modalApp, setModalApp] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/transparencia")
@@ -161,52 +164,16 @@ export default function TransparenciaPage() {
                 </div>
               )}
 
-              {/* Escopo Completo Ocultável */}
-              <details style={{ marginTop: 14, borderTop: "1px solid var(--border)", paddingTop: 10 }}>
-                <summary style={{ cursor: "pointer", fontSize: 13, fontWeight: "bold", color: "var(--accent)", outline: "none" }}>
+              {/* Escopo Completo Modal Button */}
+              <div style={{ marginTop: 14, borderTop: "1px solid var(--border)", paddingTop: 14 }}>
+                <button 
+                  className="btn" 
+                  onClick={() => setModalApp(p.id)} 
+                  style={{ width: "100%", justifyContent: "center", fontWeight: "bold" }}
+                >
                   👀 Ver Escopo Completo do Projeto {p.sigiloso ? "(Restrito)" : ""}
-                </summary>
-                
-                <div style={{ marginTop: 14, gap: 14, display: "flex", flexDirection: "column" }}>
-                  <div>
-                    <strong style={{ fontSize: 13 }}>Resumo:</strong>
-                    <p className="p" style={{ fontSize: 13, marginTop: 4 }}>{p.resumo}</p>
-                  </div>
-                  
-                  <div>
-                    <strong style={{ fontSize: 13 }}>O Problema:</strong>
-                    <p className="p" style={{ fontSize: 13, marginTop: 4 }}>{p.problema}</p>
-                  </div>
-                  
-                  <div>
-                    <strong style={{ fontSize: 13 }}>Proposta de Valor:</strong>
-                    <p className="p" style={{ fontSize: 13, marginTop: 4 }}>{p.propostaValor}</p>
-                  </div>
-                  
-                  <div>
-                    <strong style={{ fontSize: 13 }}>Indicadores:</strong>
-                    <p className="p" style={{ fontSize: 13, marginTop: 4 }}>{p.indicadores}</p>
-                  </div>
-                  
-                  <div>
-                    <strong style={{ fontSize: 13 }}>Histórico da Equipe:</strong>
-                    <p className="p" style={{ fontSize: 13, marginTop: 4 }}>{p.historicoEquipe}</p>
-                  </div>
-
-                  {/* Parecer da IA (no fim) */}
-                  {p.aiFeedback && (
-                    <div style={{ marginTop: 10, padding: 14, background: "rgba(10, 20, 50, 0.4)", borderRadius: 6, borderLeft: "4px solid #8e24aa" }}>
-                      <div style={{ fontSize: 12, fontWeight: "bold", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 6, display: "flex", justifyContent: "space-between" }}>
-                        <span style={{ color: "#e1bee7" }}>🤖 ANÁLISE PRÉVIA DA IA</span>
-                        <span style={{ color: "#e1bee7" }}>SCORE: {p.aiScore}/10</span>
-                      </div>
-                      <div style={{ fontSize: 13, color: "var(--text)", whiteSpace: "pre-wrap" }}>
-                        {p.aiFeedback}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </details>
+                </button>
+              </div>
 
               {/* Barra de progresso (só faz sentido se não for reprovado) */}
               {!isReprovado && p.totalMarcos > 0 && (
@@ -241,6 +208,11 @@ export default function TransparenciaPage() {
         <p>Programa Municipal de Fomento à Inovação – ProInova Jaborandi</p>
         <p>Dados públicos conforme Art. 19 e 20. Projetos protegidos por sigilo (LGPD/Inovação) podem ter suas informações ofuscadas.</p>
       </div>
+
+      {/* Modal Sobreposto Full */}
+      {modalApp && (
+        <ModalProjeto id={modalApp} onClose={() => setModalApp(null)} />
+      )}
     </div>
   );
 }

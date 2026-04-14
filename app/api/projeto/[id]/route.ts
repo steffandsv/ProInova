@@ -26,8 +26,8 @@ export async function GET(request: Request, { params }: { params: { id: string }
       return NextResponse.json({ error: "Projeto não encontrado" }, { status: 404 });
     }
 
-    // Apenas propostas EM_EXECUCAO ou CONCLUIDA são públicas
-    if (!["EM_EXECUCAO", "CONCLUIDA"].includes(proposta.status)) {
+    // Apenas propostas do Portal da Transparência são públicas
+    if (!["CLASSIFICADA", "HOMOLOGADA", "TERMO_OUTORGA", "EM_EXECUCAO", "CONCLUIDA", "SUSPENSA", "CANCELADA"].includes(proposta.status)) {
       return NextResponse.json({ error: "Projeto ainda não está em fase pública" }, { status: 404 });
     }
 
