@@ -12,7 +12,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       include: {
         proponente: { select: { nome: true } },
         edital: { select: { titulo: true, modalidade: true } },
-        equipe: true,
+        equipe: { select: { nome: true, ehMenor: true, vinculoEstudantil: true } },
         marcos: {
           include: {
             evidencias: { where: { publica: true }, orderBy: { createdAt: "desc" } },

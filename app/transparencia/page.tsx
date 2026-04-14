@@ -23,7 +23,7 @@ type ProjetoPublico = {
 export default function TransparenciaPage() {
   const [projetos, setProjetos] = useState<ProjetoPublico[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filtro, setFiltro] = useState<"ALL" | "APROVADA" | "EM_EXECUCAO" | "CONCLUIDA" | "REPROVADA">("ALL");
+  const [filtro, setFiltro] = useState<"ALL" | "APROVADA" | "EM_EXECUCAO" | "CONCLUIDA" | "REPROVADA">("APROVADA");
 
   useEffect(() => {
     fetch("/api/transparencia")
@@ -60,16 +60,28 @@ export default function TransparenciaPage() {
 
       {/* Métricas */}
       <div className="grid two" style={{ gap: 14 }}>
-        <div className="card" style={{ textAlign: "center", padding: 20 }}>
+        <div 
+          className="card" 
+          style={{ textAlign: "center", padding: 20, cursor: "pointer", border: filtro === "ALL" ? "2px solid var(--accent)" : "2px solid transparent" }}
+          onClick={() => setFiltro("ALL")}
+        >
           <div style={{ fontSize: 36, fontWeight: "bold", color: "var(--accent)" }}>{projetos.length}</div>
           <div className="p" style={{ margin: 0 }}>Total de Projetos Computados</div>
         </div>
         <div className="grid two" style={{ gap: 14 }}>
-          <div className="card" style={{ textAlign: "center", padding: 20 }}>
+          <div 
+            className="card" 
+            style={{ textAlign: "center", padding: 20, cursor: "pointer", border: filtro === "APROVADA" ? "2px solid var(--good)" : "2px solid transparent" }}
+            onClick={() => setFiltro("APROVADA")}
+          >
             <div style={{ fontSize: 28, fontWeight: "bold", color: "var(--good)" }}>{totalAprovados}</div>
             <div className="p" style={{ margin: 0 }}>Aprovados</div>
           </div>
-          <div className="card" style={{ textAlign: "center", padding: 20 }}>
+          <div 
+            className="card" 
+            style={{ textAlign: "center", padding: 20, cursor: "pointer", border: filtro === "REPROVADA" ? "2px solid var(--bad)" : "2px solid transparent" }}
+            onClick={() => setFiltro("REPROVADA")}
+          >
             <div style={{ fontSize: 28, fontWeight: "bold", color: "var(--bad)" }}>{totalReprovados}</div>
             <div className="p" style={{ margin: 0 }}>Reprovados</div>
           </div>
@@ -137,8 +149,7 @@ export default function TransparenciaPage() {
                 <span>🗂️ Julgado em: {new Date(p.createdAt).toLocaleDateString("pt-BR")}</span>
               </div>
 
-              <p className="p" style={{ marginTop: 10, fontSize: 13 }}>{p.resumo}</p>
-
+              {/* Parecer do Administrador (no começo) */}
               {p.parecer && (
                 <div style={{ marginTop: 14, padding: 14, background: "rgba(0,0,0,0.2)", borderRadius: 6, borderLeft: "4px solid var(--accent)" }}>
                   <div style={{ fontSize: 12, fontWeight: "bold", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 6, color: "var(--muted)" }}>
@@ -149,6 +160,53 @@ export default function TransparenciaPage() {
                   </div>
                 </div>
               )}
+
+              {/* Escopo Completo Ocultável */}
+              <details style={{ marginTop: 14, borderTop: "1px solid var(--border)", paddingTop: 10 }}>
+                <summary style={{ cursor: "pointer", fontSize: 13, fontWeight: "bold", color: "var(--accent)", outline: "none" }}>
+                  👀 Ver Escopo Completo do Projeto {p.sigiloso ? "(Restrito)" : ""}
+                </summary>
+                
+                <div style={{ marginTop: 14, gap: 14, display: "flex", flexDirection: "column" }}>
+                  <div>
+                    <strong style={{ fontSize: 13 }}>Resumo:</strong>
+                    <p className="p" style={{ fontSize: 13, marginTop: 4 }}>{p.resumo}</p>
+                  </div>
+                  
+                  <div>
+                    <strong style={{ fontSize: 13 }}>O Problema:</strong>
+                    <p className="p" style={{ fontSize: 13, marginTop: 4 }}>{p.problema}</p>
+                  </div>
+                  
+                  <div>
+                    <strong style={{ fontSize: 13 }}>Proposta de Valor:</strong>
+                    <p className="p" style={{ fontSize: 13, marginTop: 4 }}>{p.propostaValor}</p>
+                  </div>
+                  
+                  <div>
+                    <strong style={{ fontSize: 13 }}>Indicadores:</strong>
+                    <p className="p" style={{ fontSize: 13, marginTop: 4 }}>{p.indicadores}</p>
+                  </div>
+                  
+                  <div>
+                    <strong style={{ fontSize: 13 }}>Histórico da Equipe:</strong>
+                    <p className="p" style={{ fontSize: 13, marginTop: 4 }}>{p.historicoEquipe}</p>
+                  </div>
+
+                  {/* Parecer da IA (no fim) */}
+                  {p.aiFeedback && (
+                    <div style={{ marginTop: 10, padding: 14, background: "rgba(10, 20, 50, 0.4)", borderRadius: 6, borderLeft: "4px solid #8e24aa" }}>
+                      <div style={{ fontSize: 12, fontWeight: "bold", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 6, display: "flex", justifyContent: "space-between" }}>
+                        <span style={{ color: "#e1bee7" }}>🤖 ANÁLISE PRÉVIA DA IA</span>
+                        <span style={{ color: "#e1bee7" }}>SCORE: {p.aiScore}/10</span>
+                      </div>
+                      <div style={{ fontSize: 13, color: "var(--text)", whiteSpace: "pre-wrap" }}>
+                        {p.aiFeedback}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </details>
 
               {/* Barra de progresso (só faz sentido se não for reprovado) */}
               {!isReprovado && p.totalMarcos > 0 && (
