@@ -25,9 +25,8 @@ export async function GET() {
         problema: true,
         propostaValor: true,
         indicadores: true,
-        historicoEquipe: true,
-        aiScore: true,
-        aiFeedback: true,
+        aiAnalysisJson: true,
+        equipe: { select: { nome: true, vinculoEstudantil: true } },
         _count: { select: { marcos: true } },
         marcos: {
           where: { status: "VALIDADO" },
@@ -42,17 +41,22 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     });
 
-    const result = projetos.map((p) => ({
-      id: p.id,
-      titulo: p.titulo,
-      sigiloso: p.sigiloso,
-      resumo: p.sigiloso ? "Projeto sob sigilo (Art. 19 §único)" : p.resumo,
-      problema: p.sigiloso ? "Informação protegida" : p.problema,
-      propostaValor: p.sigiloso ? "Informação protegida" : p.propostaValor,
-      indicadores: p.sigiloso ? "Informação protegida" : p.indicadores,
-      historicoEquipe: p.sigiloso ? "Informação protegida" : p.historicoEquipe,
-      aiScore: p.aiScore,
-      aiFeedback: p.sigiloso ? "Feedback oculto" : p.aiFeedback,
+    const result = projetos.map((p) => {
+      const ai = p.aiAnalysisJson as any;
+      const equipeTxt = p.equipe?.map(e => `${e.nome} (${e.vinculoEstudantil || 'Membro'})`).join(", ") || "Só Proponente";
+      const formatFeedback = ai?.thoughts ? ai.thoughts.map((t:any) => `${t.emoji} [${t.score}/10] ${t.category}\n${t.comment}`).join('\n\n') : (ai?.verdict || "Sem análise");
+
+      return {
+        id: p.id,
+        titulo: p.titulo,
+        sigiloso: p.sigiloso,
+        resumo: p.sigiloso ? "Projeto sob sigilo (Art. 19 §único)" : p.resumo,
+        problema: p.sigiloso ? "Informação protegida" : p.problema,
+        propostaValor: p.sigiloso ? "Informação protegida" : p.propostaValor,
+        indicadores: p.sigiloso ? "Informação protegida" : p.indicadores,
+        historicoEquipe: p.sigiloso ? "Informação protegida" : equipeTxt,
+        aiScore: ai?.overallScore || 0,
+        aiFeedback: p.sigiloso ? "Feedback oculto" : formatFeedback,
       modalidade: p.modalidade,
       status: p.status,
       linhaTematica: p.linhaTematica,
@@ -64,7 +68,8 @@ export async function GET() {
       progresso: p._count.marcos > 0 ? Math.round((p.marcos.length / p._count.marcos) * 100) : 0,
       createdAt: p.createdAt,
       parecer: p.avaliacoes[0]?.parecer || null,
-    }));
+      };
+    });
 
     return NextResponse.json({ ok: true, data: result });
   } catch (error: any) {
