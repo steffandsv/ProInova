@@ -27,7 +27,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     }
 
     // Apenas propostas do Portal da Transparência são públicas
-    if (!["CLASSIFICADA", "HOMOLOGADA", "TERMO_OUTORGA", "EM_EXECUCAO", "CONCLUIDA", "SUSPENSA", "CANCELADA"].includes(proposta.status)) {
+    if (!["SUBMETIDA", "EM_TRIAGEM", "PARECER_EDUCACAO", "AVALIACAO_CMAA", "CLASSIFICADA", "HOMOLOGADA", "TERMO_OUTORGA", "EM_EXECUCAO", "CONCLUIDA", "SUSPENSA", "CANCELADA"].includes(proposta.status)) {
       return NextResponse.json({ error: "Projeto ainda não está em fase pública" }, { status: 404 });
     }
 

@@ -8,7 +8,7 @@ export async function GET() {
   try {
     const projetos = await prisma.proposta.findMany({
       where: {
-        status: { in: ["CLASSIFICADA", "HOMOLOGADA", "TERMO_OUTORGA", "EM_EXECUCAO", "CONCLUIDA", "SUSPENSA", "CANCELADA"] },
+        status: { in: ["SUBMETIDA", "EM_TRIAGEM", "PARECER_EDUCACAO", "AVALIACAO_CMAA", "CLASSIFICADA", "HOMOLOGADA", "TERMO_OUTORGA", "EM_EXECUCAO", "CONCLUIDA", "SUSPENSA", "CANCELADA"] },
       },
       select: {
         id: true,
@@ -45,6 +45,8 @@ export async function GET() {
       const ai = p.aiAnalysisJson as any;
       const equipeTxt = p.equipe?.map(e => `${e.nome} (${e.vinculoEstudantil || 'Membro'})`).join(", ") || "Só Proponente";
       const formatFeedback = ai?.thoughts ? ai.thoughts.map((t:any) => `${t.emoji} [${t.score}/10] ${t.category}\n${t.comment}`).join('\n\n') : (ai?.verdict || "Sem análise");
+      const parecerRecente = p.avaliacoes[0]?.parecer || null;
+      const isDiligencia = parecerRecente?.includes("[DILIGÊNCIA SOLICITADA]") || false;
 
       return {
         id: p.id,
@@ -57,17 +59,18 @@ export async function GET() {
         historicoEquipe: p.sigiloso ? "Informação protegida" : equipeTxt,
         aiScore: ai?.overallScore || 0,
         aiFeedback: p.sigiloso ? "Feedback oculto" : formatFeedback,
-      modalidade: p.modalidade,
-      status: p.status,
-      linhaTematica: p.linhaTematica,
-      duracaoMeses: p.duracaoMeses,
-      proponente: p.proponente.nome,
-      edital: p.edital.titulo,
-      totalMarcos: p._count.marcos,
-      marcosValidados: p.marcos.length,
-      progresso: p._count.marcos > 0 ? Math.round((p.marcos.length / p._count.marcos) * 100) : 0,
-      createdAt: p.createdAt,
-      parecer: p.avaliacoes[0]?.parecer || null,
+        modalidade: p.modalidade,
+        status: p.status,
+        linhaTematica: p.linhaTematica,
+        duracaoMeses: p.duracaoMeses,
+        proponente: p.proponente.nome,
+        edital: p.edital.titulo,
+        totalMarcos: p._count.marcos,
+        marcosValidados: p.marcos.length,
+        progresso: p._count.marcos > 0 ? Math.round((p.marcos.length / p._count.marcos) * 100) : 0,
+        createdAt: p.createdAt,
+        parecer: parecerRecente,
+        isDiligencia,
       };
     });
 

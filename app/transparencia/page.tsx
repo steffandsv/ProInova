@@ -20,12 +20,13 @@ type ProjetoPublico = {
   createdAt: string;
   parecer: string | null;
   sigiloso?: boolean;
+  isDiligencia?: boolean;
 };
 
 export default function TransparenciaPage() {
   const [projetos, setProjetos] = useState<ProjetoPublico[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filtro, setFiltro] = useState<"ALL" | "APROVADA" | "EM_EXECUCAO" | "CONCLUIDA" | "REPROVADA">("APROVADA");
+  const [filtro, setFiltro] = useState<"ALL" | "APROVADA" | "EM_EXECUCAO" | "CONCLUIDA" | "REPROVADA" | "DILIGENCIA">("APROVADA");
   const [modalApp, setModalApp] = useState<string | null>(null);
 
   useEffect(() => {
@@ -40,7 +41,8 @@ export default function TransparenciaPage() {
 
   const filtered = projetos.filter((p) => {
     if (filtro === "ALL") return true;
-    if (filtro === "REPROVADA") return ["CANCELADA", "SUSPENSA"].includes(p.status);
+    if (filtro === "REPROVADA") return ["CANCELADA", "SUSPENSA"].includes(p.status) && !p.isDiligencia;
+    if (filtro === "DILIGENCIA") return p.isDiligencia === true;
     if (filtro === "APROVADA") return ["CLASSIFICADA", "HOMOLOGADA", "TERMO_OUTORGA", "EM_EXECUCAO", "CONCLUIDA"].includes(p.status);
     if (filtro === "EM_EXECUCAO") return p.status === "EM_EXECUCAO";
     if (filtro === "CONCLUIDA") return p.status === "CONCLUIDA";
@@ -48,7 +50,8 @@ export default function TransparenciaPage() {
   });
 
   const totalAprovados = projetos.filter((p) => ["CLASSIFICADA", "HOMOLOGADA", "TERMO_OUTORGA", "EM_EXECUCAO", "CONCLUIDA"].includes(p.status)).length;
-  const totalReprovados = projetos.filter((p) => ["CANCELADA", "SUSPENSA"].includes(p.status)).length;
+  const totalReprovados = projetos.filter((p) => ["CANCELADA", "SUSPENSA"].includes(p.status) && !p.isDiligencia).length;
+  const totalDiligencia = projetos.filter((p) => p.isDiligencia === true).length;
 
   return (
     <div className="grid" style={{ gap: 14 }}>
@@ -71,26 +74,33 @@ export default function TransparenciaPage() {
           <div style={{ fontSize: 36, fontWeight: "bold", color: "var(--accent)" }}>{projetos.length}</div>
           <div className="p" style={{ margin: 0 }}>Total de Projetos Computados</div>
         </div>
-        <div className="grid two" style={{ gap: 14 }}>
+        <div className="grid three" style={{ gap: 14 }}>
           <div 
             className="card" 
             style={{ textAlign: "center", padding: 20, cursor: "pointer", border: filtro === "APROVADA" ? "2px solid var(--good)" : "2px solid transparent" }}
             onClick={() => setFiltro("APROVADA")}
           >
-            <div style={{ fontSize: 28, fontWeight: "bold", color: "var(--good)" }}>{totalAprovados}</div>
-            <div className="p" style={{ margin: 0 }}>Aprovados</div>
+            <div style={{ fontSize: 24, fontWeight: "bold", color: "var(--good)" }}>{totalAprovados}</div>
+            <div className="p" style={{ margin: 0, fontSize: 13 }}>Aprovados</div>
           </div>
           <div 
             className="card" 
             style={{ textAlign: "center", padding: 20, cursor: "pointer", border: filtro === "REPROVADA" ? "2px solid var(--bad)" : "2px solid transparent" }}
             onClick={() => setFiltro("REPROVADA")}
           >
-            <div style={{ fontSize: 28, fontWeight: "bold", color: "var(--bad)" }}>{totalReprovados}</div>
-            <div className="p" style={{ margin: 0 }}>Reprovados</div>
+            <div style={{ fontSize: 24, fontWeight: "bold", color: "var(--bad)" }}>{totalReprovados}</div>
+            <div className="p" style={{ margin: 0, fontSize: 13 }}>Reprovados</div>
+          </div>
+          <div 
+            className="card" 
+            style={{ textAlign: "center", padding: 20, cursor: "pointer", border: filtro === "DILIGENCIA" ? "2px solid #f59e0b" : "2px solid transparent" }}
+            onClick={() => setFiltro("DILIGENCIA")}
+          >
+            <div style={{ fontSize: 24, fontWeight: "bold", color: "#f59e0b" }}>{totalDiligencia}</div>
+            <div className="p" style={{ margin: 0, fontSize: 13 }}>Diligência</div>
           </div>
         </div>
       </div>
-
       {/* Filtro */}
       <div className="card" style={{ padding: 14 }}>
         <div className="row">
@@ -101,6 +111,7 @@ export default function TransparenciaPage() {
             <option value="EM_EXECUCAO">⚙️ Apenas Em Execução</option>
             <option value="CONCLUIDA">🏁 Apenas Concluídos</option>
             <option value="REPROVADA">❌ Projetos Reprovados / Cancelados</option>
+            <option value="DILIGENCIA">🔄 Projetos em Diligência</option>
           </select>
         </div>
       </div>
