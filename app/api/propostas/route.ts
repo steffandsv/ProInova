@@ -80,9 +80,28 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "Payload inválido.", errors: parsed.error.format() }, { status: 400 });
     }
 
+    const draftId = body.draftId as string | undefined;
+
+    // For resubmissions (EM_AJUSTE), look up the proposal before edital check
+    let existingProposal: any = null;
+    if (draftId) {
+      existingProposal = await prisma.proposta.findFirst({
+        where: { id: draftId, proponenteId: session.sub, status: { in: ["RASCUNHO", "EM_AJUSTE"] } },
+      });
+      if (!existingProposal) {
+        return NextResponse.json({ message: "Rascunho não encontrado ou já foi submetido." }, { status: 400 });
+      }
+    }
+
+    const isResubmit = existingProposal?.status === "EM_AJUSTE";
+
     const edital = await prisma.edital.findUnique({ where: { id: parsed.data.editalId } });
-    if (!edital || edital.status !== "ABERTO") {
-      return NextResponse.json({ message: "Edital não encontrado ou não está aberto." }, { status: 400 });
+    if (!edital) {
+      return NextResponse.json({ message: "Edital não encontrado." }, { status: 400 });
+    }
+    // Only enforce edital ABERTO for new submissions; resubmissions can proceed even if edital closed
+    if (!isResubmit && edital.status !== "ABERTO") {
+      return NextResponse.json({ message: "Edital não está aberto para novas submissões." }, { status: 400 });
     }
 
     // Validação da soma de rateio da equipe
@@ -100,23 +119,14 @@ export async function POST(req: Request) {
       }
     }
 
-    const draftId = body.draftId as string | undefined;
-
     const result = await prisma.$transaction(async (tx) => {
-      // If converting a draft, update instead of create
-      if (draftId) {
-        const existingDraft = await tx.proposta.findFirst({
-          where: { id: draftId, proponenteId: session.sub, status: "RASCUNHO" },
-        });
-        if (!existingDraft) {
-          throw new Error("Rascunho não encontrado ou já foi submetido.");
-        }
-
-        // Clear old equipe & marcos from the draft
+      // If converting a draft or resubmitting an EM_AJUSTE, update instead of create
+      if (draftId && existingProposal) {
+        // Clear old equipe & marcos
         await tx.equipeMembro.deleteMany({ where: { propostaId: draftId } });
         await tx.marco.deleteMany({ where: { propostaId: draftId } });
 
-        // Update the draft → SUBMETIDA
+        // Update → SUBMETIDA
         await tx.proposta.update({
           where: { id: draftId },
           data: {
@@ -170,7 +180,7 @@ export async function POST(req: Request) {
 
         await logAudit({
           userId: session.sub,
-          action: "PROPOSTA_SUBMETIDA",
+          action: isResubmit ? "PROPOSTA_RESUBMETIDA" : "PROPOSTA_SUBMETIDA",
           entityType: "Proposta",
           entityId: draftId,
         }, tx);

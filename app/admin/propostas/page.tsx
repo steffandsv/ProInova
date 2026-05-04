@@ -62,6 +62,7 @@ export default function AdminPropostasPage() {
             <option value="TERMO_OUTORGA">📝 Termo de Outorga</option>
             <option value="EM_EXECUCAO">⚙️ Em Execução</option>
             <option value="SUSPENSA">⏸️ Suspensa</option>
+            <option value="EM_AJUSTE">⚠️ Aguardando Revisão do Proponente</option>
             <option value="CANCELADA">❌ Cancelada</option>
             <option value="CONCLUIDA">🏁 Concluída</option>
           </select>

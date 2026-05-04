@@ -10,11 +10,14 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
 
   const [parecerTexto, setParecerTexto] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [decisao, setDecisao] = useState<"APROVADA" | "REPROVADA" | "DILIGENCIA" | "">("");
+  const [decisao, setDecisao] = useState<"APROVADA" | "REPROVADA" | "DILIGENCIA" | "DEVOLVER" | "">("");
   const [diligenciaTexto, setDiligenciaTexto] = useState("");
 
   const [editingParecerId, setEditingParecerId] = useState<string | null>(null);
   const [editingParecerText, setEditingParecerText] = useState("");
+
+  const [novoParecer, setNovoParecer] = useState("");
+  const [savingNovoParecer, setSavingNovoParecer] = useState(false);
 
   async function handleEditParecer(avId: string) {
     if (!editingParecerText.trim()) return;
@@ -48,6 +51,29 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
       .catch(() => setError("Falha de rede"));
   }, [params.id]);
 
+  async function handleNovoParecer() {
+    if (!novoParecer.trim()) return;
+    setSavingNovoParecer(true);
+    try {
+      const res = await fetch(`/api/admin/propostas/${params.id}/parecer`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ parecerTexto: novoParecer }),
+      });
+      if (res.ok) {
+        setNovoParecer("");
+        window.location.reload();
+      } else {
+        const json = await res.json();
+        alert(json.error || "Erro ao registrar parecer.");
+      }
+    } catch {
+      alert("Falha ao salvar parecer.");
+    } finally {
+      setSavingNovoParecer(false);
+    }
+  }
+
   if (loading) return <div className="card"><p className="p">Carregando...</p></div>;
   if (error || !data) return <div className="card"><p className="p" style={{ color: "var(--bad)" }}>{error}</p></div>;
 
@@ -62,6 +88,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
     TERMO_OUTORGA: "var(--accent)",
     EM_EXECUCAO: "var(--good)",
     SUSPENSA: "var(--bad)",
+    EM_AJUSTE: "var(--warn)",
     CANCELADA: "var(--bad)",
     CONCLUIDA: "var(--good)",
   };
@@ -77,6 +104,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
     TERMO_OUTORGA: "#7c5cff",
     EM_EXECUCAO: "#22c55e",
     SUSPENSA: "#ef4444",
+    EM_AJUSTE: "#f59e0b",
     CANCELADA: "#ef4444",
     CONCLUIDA: "#22c55e",
   };
@@ -176,12 +204,63 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
             📋 <strong>Consulte a Lei Municipal de Inovação</strong> — Referência para avaliação
           </a>
 
+          {/* ======================= PROPOSTA CANCELADA: ações especiais ======================= */}
+          {data.status === "CANCELADA" && (
+            <div className="card" style={{ borderColor: "var(--bad)", background: "rgba(239,68,68,0.04)" }}>
+              <h2 className="h2" style={{ color: "var(--bad)", marginBottom: 8 }}>Proposta Cancelada</h2>
+              <p className="p" style={{ marginBottom: 20 }}>Esta proposta foi cancelada. Você pode devolvê-la ao proponente para revisão completa ou registrar um parecer complementar no histórico.</p>
+
+              {/* Devolver para revisão */}
+              <div style={{ padding: 16, borderRadius: 10, border: "1px solid rgba(245,158,11,0.3)", background: "rgba(245,158,11,0.04)", marginBottom: 16 }}>
+                <strong style={{ fontSize: 14, color: "#fbbf24", display: "block", marginBottom: 8 }}>↩️ Devolver ao Proponente para Revisão</strong>
+                <p className="p" style={{ fontSize: 13, marginBottom: 10 }}>A proposta voltará ao status <strong>EM AJUSTE</strong>. O proponente poderá editar todos os campos (incluindo meses e entregáveis) e resubmeter.</p>
+                <div className="label" style={{ marginBottom: 6 }}>Motivo da devolução (obrigatório — o proponente verá este texto)</div>
+                <textarea
+                  className="textarea"
+                  value={parecerTexto}
+                  onChange={(e) => setParecerTexto(e.target.value)}
+                  placeholder="Explique detalhadamente o que precisa ser revisado e por que a proposta está sendo devolvida em vez de cancelada definitivamente..."
+                  style={{ borderColor: "#f59e0b" }}
+                />
+                <button
+                  className="btn"
+                  style={{ marginTop: 10, borderColor: "#f59e0b", color: "#fbbf24" }}
+                  disabled={isSubmitting || !parecerTexto.trim()}
+                  onClick={() => handleTransition("EM_AJUSTE", parecerTexto)}
+                >
+                  {isSubmitting ? "Processando..." : "↩️ Devolver para Revisão (EM_AJUSTE)"}
+                </button>
+              </div>
+
+              {/* Registrar parecer sem mudar status */}
+              <div style={{ padding: 16, borderRadius: 10, border: "1px solid var(--border)", background: "rgba(255,255,255,0.02)" }}>
+                <strong style={{ fontSize: 14, display: "block", marginBottom: 8 }}>📝 Registrar Parecer Complementar</strong>
+                <p className="p" style={{ fontSize: 13, marginBottom: 10 }}>Adiciona um registro formal ao histórico sem alterar o status de cancelamento.</p>
+                <div className="label" style={{ marginBottom: 6 }}>Texto do parecer</div>
+                <textarea
+                  className="textarea"
+                  value={novoParecer}
+                  onChange={(e) => setNovoParecer(e.target.value)}
+                  placeholder="Escreva o parecer complementar a ser registrado no histórico desta proposta cancelada..."
+                />
+                <button
+                  className="btn secondary"
+                  style={{ marginTop: 10 }}
+                  disabled={savingNovoParecer || !novoParecer.trim()}
+                  onClick={handleNovoParecer}
+                >
+                  {savingNovoParecer ? "Salvando..." : "💾 Registrar Parecer"}
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* ======================= TELA DE AVALIAÇÃO / TRANSIÇÃO ======================= */}
-          {data.availableTransitions?.length > 0 && (
+          {data.status !== "CANCELADA" && data.availableTransitions?.length > 0 && (
             <div className="card" style={{ borderColor: "var(--accent)", background: "rgba(0,123,255,0.05)" }}>
               <h2 className="h2" style={{ color: "var(--accent)", marginBottom: 14 }}>Avaliação da Proposta</h2>
               <p className="p">Seu perfil tem permissão para decidir o avanço desta proposta.</p>
-              
+
               <div className="row" style={{ marginTop: 14 }}>
                 <div className="label">Decisão</div>
                 <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", flexDirection: "column" }}>
@@ -191,40 +270,63 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                   </label>
                   <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: "var(--card-bg)", padding: "10px 14px", borderRadius: 8, border: "1px solid " + (decisao === "REPROVADA" ? "#ef4444" : "var(--border)") }}>
                     <input type="radio" name="decisao" value="REPROVADA" checked={decisao === "REPROVADA"} onChange={() => setDecisao("REPROVADA")} style={{ width: 18, height: 18 }} />
-                    <span style={{ fontWeight: 600 }}>❌ REPROVADA</span> <span style={{ color: "var(--muted)", fontSize: 13 }}>— Encerrar / suspender proposta</span>
+                    <span style={{ fontWeight: 600 }}>❌ REPROVADA</span> <span style={{ color: "var(--muted)", fontSize: 13 }}>— Encerrar / cancelar proposta</span>
                   </label>
-                  <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: "var(--card-bg)", padding: "10px 14px", borderRadius: 8, border: "1px solid " + (decisao === "DILIGENCIA" ? "#f59e0b" : "var(--border)") }}>
+                  {data.availableTransitions.some((t: any) => t.to === "EM_AJUSTE") && (
+                    <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: "var(--card-bg)", padding: "10px 14px", borderRadius: 8, border: "1px solid " + (decisao === "DEVOLVER" ? "#f59e0b" : "var(--border)") }}>
+                      <input type="radio" name="decisao" value="DEVOLVER" checked={decisao === "DEVOLVER"} onChange={() => setDecisao("DEVOLVER")} style={{ width: 18, height: 18 }} />
+                      <span style={{ fontWeight: 600 }}>↩️ DEVOLVER AO PROPONENTE</span> <span style={{ color: "var(--muted)", fontSize: 13 }}>— Retornar para revisão completa (meses, entregáveis, equipe, etc.)</span>
+                    </label>
+                  )}
+                  <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: "var(--card-bg)", padding: "10px 14px", borderRadius: 8, border: "1px solid " + (decisao === "DILIGENCIA" ? "#8b5cf6" : "var(--border)") }}>
                     <input type="radio" name="decisao" value="DILIGENCIA" checked={decisao === "DILIGENCIA"} onChange={() => setDecisao("DILIGENCIA")} style={{ width: 18, height: 18 }} />
-                    <span style={{ fontWeight: 600 }}>🔄 DILIGÊNCIA</span> <span style={{ color: "var(--muted)", fontSize: 13 }}>— Devolver para ajustes do proponente</span>
+                    <span style={{ fontWeight: 600 }}>🔄 DILIGÊNCIA</span> <span style={{ color: "var(--muted)", fontSize: 13 }}>— Retroceder para etapa anterior (entre avaliadores)</span>
                   </label>
                 </div>
               </div>
 
+              {decisao === "DEVOLVER" && (
+                <div className="row" style={{ marginTop: 14, padding: 14, borderRadius: 10, background: "rgba(245,158,11,0.05)", border: "1px solid rgba(245,158,11,0.2)" }}>
+                  <p className="p" style={{ fontSize: 13, marginBottom: 10, color: "#fbbf24" }}>
+                    ↩️ A proposta será marcada como <strong>EM AJUSTE</strong>. O proponente poderá editar <strong>todos os campos</strong> — título, equipe, meses, entregáveis, evidências, etc. — e resubmeter. Todo o histórico é preservado.
+                  </p>
+                </div>
+              )}
+
               {decisao === "DILIGENCIA" && (
                 <div className="row" style={{ marginTop: 14 }}>
-                  <div className="label">Oque exatamente precisa ser ajustado? (Resposta extra para Diligência)</div>
-                  <textarea 
-                    className="textarea" 
-                    value={diligenciaTexto} 
-                    onChange={(e) => setDiligenciaTexto(e.target.value)} 
-                    placeholder="Especifique os pontos que o proponente precisa alterar em sua submissão..." 
-                    style={{ borderColor: "#f59e0b" }}
+                  <div className="label">O que precisa ser ajustado? (detalhe para Diligência)</div>
+                  <textarea
+                    className="textarea"
+                    value={diligenciaTexto}
+                    onChange={(e) => setDiligenciaTexto(e.target.value)}
+                    placeholder="Especifique os pontos que precisam de revisão antes de avançar..."
+                    style={{ borderColor: "#8b5cf6" }}
                     required
                   />
                 </div>
               )}
 
               <div className="row" style={{ marginTop: 14 }}>
-                <div className="label">Parecer / Observação {decisao === "DILIGENCIA" ? "(Justificativa Interna)" : "(Ficará no Histórico)"}</div>
-                <textarea 
-                  className="textarea" 
-                  value={parecerTexto} 
-                  onChange={(e) => setParecerTexto(e.target.value)} 
+                <div className="label">
+                  {decisao === "DEVOLVER"
+                    ? "Motivo da devolução (obrigatório — o proponente verá este texto ao editar)"
+                    : decisao === "DILIGENCIA"
+                    ? "Parecer / Justificativa Interna"
+                    : "Parecer / Observação (ficará no histórico)"}
+                </div>
+                <textarea
+                  className="textarea"
+                  value={parecerTexto}
+                  onChange={(e) => setParecerTexto(e.target.value)}
                   placeholder={
-                    decisao === "DILIGENCIA" 
-                      ? "Escreva a justificativa para a diligência..." 
+                    decisao === "DEVOLVER"
+                      ? "Explique o que precisa ser revisado na proposta — o proponente verá esta mensagem..."
+                      : decisao === "DILIGENCIA"
+                      ? "Escreva a justificativa para a diligência..."
                       : "Descreva o motivo da aprovação ou reprovação..."
                   }
+                  style={{ borderColor: decisao === "DEVOLVER" ? "#f59e0b" : undefined }}
                   required
                 />
               </div>
@@ -236,7 +338,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                   const forwards = ["SUBMETIDA", "EM_TRIAGEM", "PARECER_EDUCACAO", "AVALIACAO_CMAA", "CLASSIFICADA", "HOMOLOGADA", "TERMO_OUTORGA", "EM_EXECUCAO", "CONCLUIDA"];
                   const backwards = ["RASCUNHO", "SUBMETIDA", "EM_TRIAGEM", "PARECER_EDUCACAO"];
                   const cancels = ["SUSPENSA", "CANCELADA"];
-                  
+
                   let targetStatus: string | null = null;
                   if (decisao === "APROVADA") {
                     targetStatus = data.availableTransitions.find((t: any) => t.to === "HOMOLOGADA")?.to
@@ -244,6 +346,8 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                   } else if (decisao === "REPROVADA") {
                     targetStatus = data.availableTransitions.find((t: any) => t.to === "CANCELADA")?.to
                                 || data.availableTransitions.find((t: any) => cancels.includes(t.to))?.to || null;
+                  } else if (decisao === "DEVOLVER") {
+                    targetStatus = data.availableTransitions.find((t: any) => t.to === "EM_AJUSTE")?.to || null;
                   } else if (decisao === "DILIGENCIA") {
                     targetStatus = data.availableTransitions.find((t: any) => backwards.includes(t.to))?.to || null;
                   }
@@ -260,7 +364,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                       </Link>
                     );
                   }
-                  
+
                   // Handle Termo Outorga
                   if (data.status === "HOMOLOGADA" && decisao === "APROVADA" && targetStatus === "TERMO_OUTORGA") {
                     return (
@@ -270,18 +374,26 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                     );
                   }
 
+                  const isDevolver = decisao === "DEVOLVER";
+                  const buttonDisabled = isSubmitting || !parecerTexto.trim() || (decisao === "DILIGENCIA" && !diligenciaTexto.trim());
+
                   return (
-                    <button 
-                      className={decisao === "APROVADA" ? "cta-btn cta-btn--primary" : decisao === "REPROVADA" ? "btn secondary" : "btn"} 
+                    <button
+                      className={decisao === "APROVADA" ? "cta-btn cta-btn--primary" : decisao === "REPROVADA" ? "btn secondary" : "btn"}
+                      style={isDevolver ? { borderColor: "#f59e0b", color: "#fbbf24" } : undefined}
                       onClick={() => {
-                        const finalParecer = decisao === "DILIGENCIA" && diligenciaTexto.trim() 
+                        const finalParecer = decisao === "DILIGENCIA" && diligenciaTexto.trim()
                           ? `[DILIGÊNCIA SOLICITADA]: ${diligenciaTexto}\n\n[PARECER INTERNO]: ${parecerTexto}`
                           : parecerTexto;
-                        handleTransition(targetStatus, finalParecer);
+                        handleTransition(targetStatus!, finalParecer);
                       }}
-                      disabled={isSubmitting || !parecerTexto.trim() || (decisao === "DILIGENCIA" && !diligenciaTexto.trim())}
+                      disabled={buttonDisabled}
                     >
-                      {isSubmitting ? "Processando..." : `Confirmar Decisão (Avança para ${targetStatus})`}
+                      {isSubmitting
+                        ? "Processando..."
+                        : isDevolver
+                        ? "↩️ Devolver ao Proponente para Revisão"
+                        : `Confirmar Decisão → ${targetStatus}`}
                     </button>
                   );
                 })()}

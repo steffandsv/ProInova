@@ -9,14 +9,25 @@ type RouteContext = { params: { id: string } };
 
 /**
  * GET /api/propostas/draft/[id]
- * Returns full draft data for restoring the form state.
+ * Returns full draft (RASCUNHO) or returned-for-revision (EM_AJUSTE) proposal data.
  */
 export async function GET(req: Request, { params }: RouteContext) {
   try {
     const session = requireAuth(req);
     const draft = await prisma.proposta.findFirst({
-      where: { id: params.id, proponenteId: session.sub, status: "RASCUNHO" },
-      include: { equipe: true },
+      where: {
+        id: params.id,
+        proponenteId: session.sub,
+        status: { in: ["RASCUNHO", "EM_AJUSTE"] },
+      },
+      include: {
+        equipe: true,
+        avaliacoes: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          include: { avaliador: { select: { nome: true } } },
+        },
+      },
     });
     if (!draft) {
       return NextResponse.json({ message: "Rascunho não encontrado." }, { status: 404 });
@@ -43,8 +54,8 @@ export async function PUT(req: Request, { params }: RouteContext) {
     if (!existing) {
       return NextResponse.json({ message: "Rascunho não encontrado." }, { status: 404 });
     }
-    if (existing.status !== "RASCUNHO") {
-      return NextResponse.json({ message: "Proposta já foi submetida e não pode ser editada como rascunho." }, { status: 400 });
+    if (!["RASCUNHO", "EM_AJUSTE"].includes(existing.status)) {
+      return NextResponse.json({ message: "Proposta já foi submetida e não pode ser editada." }, { status: 400 });
     }
 
     // Build update data (only set fields that are present in the body)

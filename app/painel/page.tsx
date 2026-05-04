@@ -48,6 +48,7 @@ export default function PainelPage() {
     TERMO_OUTORGA: { icon: "📄", color: "#10b981", label: "Termo de outorga" },
     EM_EXECUCAO: { icon: "⚙️", color: "var(--good)", label: "Em execução" },
     SUSPENSA: { icon: "⏸️", color: "var(--warn)", label: "Suspensa" },
+    EM_AJUSTE: { icon: "⚠️", color: "#f59e0b", label: "Aguardando sua revisão" },
     CANCELADA: { icon: "❌", color: "var(--bad)", label: "Cancelada" },
     CONCLUIDA: { icon: "🏁", color: "var(--accent)", label: "Concluída" },
   };
@@ -135,6 +136,10 @@ export default function PainelPage() {
                       {p.status === "RASCUNHO" ? (
                         <Link href={`/propostas/nova?draft=${p.id}`} className="cta-btn cta-btn--primary" style={{ padding: "8px 16px", fontSize: 14 }}>
                           ✏️ Continuar editando
+                        </Link>
+                      ) : p.status === "EM_AJUSTE" ? (
+                        <Link href={`/propostas/nova?draft=${p.id}`} className="cta-btn cta-btn--primary" style={{ padding: "8px 16px", fontSize: 14, background: "linear-gradient(135deg, #f59e0b, #fbbf24)", border: "none" }}>
+                          ⚠️ Revisar e Resubmeter
                         </Link>
                       ) : p.status === "EM_EXECUCAO" ? (
                         <Link href={`/propostas/${p.id}`} className="cta-btn cta-btn--ghost" style={{ padding: "8px 16px", fontSize: 14, borderColor: "var(--good)" }}>
