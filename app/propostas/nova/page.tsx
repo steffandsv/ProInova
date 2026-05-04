@@ -289,6 +289,11 @@ function NovaPropostaInner() {
   const [msg, setMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  /* ─── Resubmit mode (EM_AJUSTE) ─── */
+  const [isResubmitMode, setIsResubmitMode] = useState(false);
+  const [devolucaoParecer, setDevolucaoParecer] = useState<string | null>(null);
+  const [devolucaoAvaliador, setDevolucaoAvaliador] = useState<string | null>(null);
+
   /* ─── AI Preview state ─── */
   const [aiLoading, setAiLoading] = useState(false);
   const [aiReasoningText, setAiReasoningText] = useState("");
@@ -410,6 +415,17 @@ function NovaPropostaInner() {
             : [{ cpf: "", nome: "", dataNasc: "", vinculoEstudantil: "", ehMenor: false, responsavelLegal: "", cpfResponsavel: "", percentualRateio: 100 }],
         });
         if (d.aiAnalysisJson) setAiResult(d.aiAnalysisJson);
+
+        // Detect resubmit mode (EM_AJUSTE)
+        if (d.status === "EM_AJUSTE") {
+          setIsResubmitMode(true);
+          const lastAv = d.avaliacoes?.[0];
+          if (lastAv) {
+            setDevolucaoParecer(lastAv.parecer || null);
+            setDevolucaoAvaliador(lastAv.avaliador?.nome || "Avaliador");
+          }
+        }
+
         initializedRef.current = true;
       });
   }, [searchParams]);
@@ -756,15 +772,38 @@ function NovaPropostaInner() {
       )}
       {/* Header Banner */}
       <div style={{ textAlign: "center", padding: "40px 20px 60px", position: "relative", zIndex: 2 }}>
-        <span className="section-tag" style={{ marginBottom: 16 }}>🚀 Nova Ideia</span>
+        <span className="section-tag" style={{ marginBottom: 16 }}>{isResubmitMode ? "⚠️ Revisão Solicitada" : "🚀 Nova Ideia"}</span>
         <h1 className="h1" style={{ fontSize: "clamp(32px, 5vw, 48px)", fontWeight: 800, letterSpacing: "-0.02em" }}>
-          Deixe sua marca no <span className="gradient-text">ProInova</span>
+          {isResubmitMode ? (
+            <>Revisar e <span className="gradient-text">Resubmeter</span> Proposta</>
+          ) : (
+            <>Deixe sua marca no <span className="gradient-text">ProInova</span></>
+          )}
         </h1>
         <p className="p" style={{ maxWidth: 680, margin: "0 auto", fontSize: 18 }}>
-          Este formulário foi desenhado para separar ideias soltas de projetos que acontecem. 
-          Descreva com clareza o problema, a equipe, o plano de voo e as evidências.
+          {isResubmitMode
+            ? "A avaliação identificou pontos que precisam ser ajustados. Edite livremente toda a proposta — equipe, meses, entregáveis e conteúdo — e reenvie quando estiver pronta."
+            : "Este formulário foi desenhado para separar ideias soltas de projetos que acontecem. Descreva com clareza o problema, a equipe, o plano de voo e as evidências."}
         </p>
       </div>
+
+      {/* Devolução notice */}
+      {isResubmitMode && devolucaoParecer && (
+        <div style={{ maxWidth: 900, margin: "0 auto 24px", padding: "20px 24px", borderRadius: 14, background: "rgba(245,158,11,0.08)", border: "2px solid rgba(245,158,11,0.4)", position: "relative", zIndex: 3 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+            <span style={{ fontSize: 20 }}>⚠️</span>
+            <strong style={{ color: "#fbbf24", fontSize: 15 }}>
+              Motivo da Devolução {devolucaoAvaliador ? `— ${devolucaoAvaliador}` : ""}
+            </strong>
+          </div>
+          <div style={{ fontSize: 14, lineHeight: 1.7, whiteSpace: "pre-wrap", color: "var(--text)" }}>
+            {devolucaoParecer}
+          </div>
+          <p className="p" style={{ marginTop: 12, fontSize: 12, color: "var(--muted)" }}>
+            Todo o histórico anterior da proposta é preservado. Após resubmeter, ela voltará ao início da fila de avaliação.
+          </p>
+        </div>
+      )}
 
       <div className="grid" style={{ gap: 32, position: "relative", zIndex: 3, maxWidth: 900, margin: "0 auto" }}>
         
@@ -1375,9 +1414,13 @@ function NovaPropostaInner() {
                   className="btn btn-submit"
                   onClick={submit}
                   disabled={loading || (!aiResult && !aiError) || hasIneligibleMember}
-                  style={{ padding: "16px 32px", fontSize: 16, marginTop: 14 }}
+                  style={{ padding: "16px 32px", fontSize: 16, marginTop: 14, background: isResubmitMode ? "linear-gradient(135deg, #f59e0b, #fbbf24)" : undefined, border: isResubmitMode ? "none" : undefined, color: isResubmitMode ? "#000" : undefined }}
                 >
-                  {loading ? "Enviando Proposta Oficial..." : (aiError ? "Finalizar sem Análise Prévia" : "Enviar Proposta Oficial para o Comitê")}
+                  {loading
+                    ? "Enviando..."
+                    : isResubmitMode
+                    ? (aiError ? "Resubmeter sem Nova Análise" : "⚠️ Resubmeter Proposta Revisada ao Comitê")
+                    : (aiError ? "Finalizar sem Análise Prévia" : "Enviar Proposta Oficial para o Comitê")}
                 </button>
               </div>
             )}

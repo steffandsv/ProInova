@@ -47,10 +47,20 @@ export const WORKFLOW_TRANSITIONS: TransitionRule[] = [
   { from: "SUSPENSA", to: "CANCELADA", roles: ["ADMIN"] },
   { from: "EM_EXECUCAO", to: "CANCELADA", roles: ["ADMIN"] },
 
-  // Devolução para ajustes (por qualquer avaliador)
+  // Devolução interna para ajustes (retorna entre etapas administrativas)
   { from: "EM_TRIAGEM", to: "SUBMETIDA", roles: ["TRIAGEM", "ADMIN"] },
   { from: "PARECER_EDUCACAO", to: "EM_TRIAGEM", roles: ["EDUCACAO", "ADMIN"] },
   { from: "AVALIACAO_CMAA", to: "EM_TRIAGEM", roles: ["CMAA", "ADMIN"] },
+
+  // Devolução ao proponente para revisão completa (EM_AJUSTE)
+  { from: "SUBMETIDA", to: "EM_AJUSTE", roles: ["ADMIN"] },
+  { from: "EM_TRIAGEM", to: "EM_AJUSTE", roles: ["TRIAGEM", "ADMIN"] },
+  { from: "PARECER_EDUCACAO", to: "EM_AJUSTE", roles: ["EDUCACAO", "ADMIN"] },
+  { from: "AVALIACAO_CMAA", to: "EM_AJUSTE", roles: ["CMAA", "ADMIN"] },
+  { from: "CLASSIFICADA", to: "EM_AJUSTE", roles: ["ADMIN"] },
+  { from: "CANCELADA", to: "EM_AJUSTE", roles: ["ADMIN"] },
+  // Proponente resubmete após ajustes
+  { from: "EM_AJUSTE", to: "SUBMETIDA", roles: ["PROPONENTE", "ADMIN"] },
 
   // --- Atalhos Diretos (Fast-paths) para ADMIN ---
   { from: "SUBMETIDA", to: "HOMOLOGADA", roles: ["ADMIN"] },
