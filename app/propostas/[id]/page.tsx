@@ -218,7 +218,7 @@ export default function PropostaMarcosPage({ params }: { params: { id: string } 
             <div>
               <strong style={{ fontSize: 15 }}>Mês {m.mes}</strong>
               <span className="badge" style={{ marginLeft: 10 }}>{statusIcon[m.status]} {marcoStatusLabelMap[m.status] || m.status}</span>
-              {m.nota !== null && m.nota !== undefined && (
+              {m.status === "VALIDADO" && m.nota !== null && m.nota !== undefined && (
                 <span 
                   className="badge" 
                   style={{ marginLeft: 8, borderColor: "var(--accent)", color: "var(--accent)", cursor: "help" }}

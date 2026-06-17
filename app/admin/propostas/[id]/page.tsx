@@ -843,9 +843,9 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                       >
                         {marcoStatusIconMap[m.status] || ""} {marcoStatusLabelMap[m.status] || m.status}
                       </span>
-                      {m.status === "VALIDADO" && (
+                      {m.status === "VALIDADO" && m.nota !== null && m.nota !== undefined && (
                         <span className="badge" style={{ marginLeft: 8, borderColor: "var(--accent)", color: "var(--accent)" }}>
-                          Nota: {m.nota ?? 10} (Mult: {((m.nota ?? 10) / 10).toFixed(2)})
+                          Nota: {m.nota} (Mult: {(m.nota / 10).toFixed(2)})
                         </span>
                       )}
                     </div>
