@@ -23,9 +23,6 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       return NextResponse.json({ error: "Registro de histórico não encontrado" }, { status: 404 });
     }
 
-    if (!["VALIDACAO", "SOLICITACAO_AJUSTE", "REJEICAO", "ANULACAO"].includes(log.acao)) {
-      return NextResponse.json({ error: "Apenas registros de avaliação administrativa podem ser modificados." }, { status: 400 });
-    }
 
     const parsedNota = nota !== undefined && nota !== null ? parseFloat(nota) : null;
 
@@ -78,9 +75,6 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
       return NextResponse.json({ error: "Registro de histórico não encontrado" }, { status: 404 });
     }
 
-    if (!["VALIDACAO", "SOLICITACAO_AJUSTE", "REJEICAO", "ANULACAO"].includes(log.acao)) {
-      return NextResponse.json({ error: "Apenas registros de avaliação administrativa podem ser removidos." }, { status: 400 });
-    }
 
     // Deletar o registro de histórico
     await prisma.marcoHistorico.delete({

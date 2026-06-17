@@ -95,8 +95,13 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
     }
   }
 
-  async function handleDeleteMarcoLog(logId: string) {
-    if (!confirm("Tem certeza que deseja excluir esta avaliação do histórico? O status e a nota do marco serão recalculados automaticamente com base nos registros restantes.")) {
+  const USER_ACTIONS = ["SUBMISSAO", "REENVIO", "EDICAO", "REMOCAO"];
+
+  async function handleDeleteMarcoLog(logId: string, isUserAction = false) {
+    const message = isUserAction
+      ? "⚠️ ATENÇÃO: Este registro foi criado pelo proponente (usuário).\n\nExcluir este registro pode alterar o histórico oficial da entrega e impactar o status do marco.\n\nTem certeza que deseja prosseguir?"
+      : "Tem certeza que deseja excluir esta avaliação do histórico? O status e a nota do marco serão recalculados automaticamente com base nos registros restantes.";
+    if (!confirm(message)) {
       return;
     }
     try {
@@ -1030,12 +1035,15 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                                   <span style={{ color: "var(--text)", fontWeight: 500 }}>por {h.autorNome}</span>
                                 </div>
                                 
-                                {!isEditing && ["VALIDACAO", "SOLICITACAO_AJUSTE", "REJEICAO", "ANULACAO"].includes(h.acao) && (
+                                {!isEditing && (
                                   <div style={{ display: "flex", gap: 6 }}>
                                     <button
                                       className="btn secondary"
                                       style={smallButtonStyle}
                                       onClick={() => {
+                                        if (USER_ACTIONS.includes(h.acao)) {
+                                          if (!confirm("⚠️ ATENÇÃO: Este registro foi criado pelo proponente (usuário).\n\nEditar pode alterar o histórico oficial da entrega.\n\nDeseja continuar?")) return;
+                                        }
                                         setEditingMarcoLogId(h.id);
                                         setEditingMarcoLogText(h.comentario || "");
                                         setEditingMarcoLogNota(h.nota !== null ? String(h.nota) : "");
@@ -1046,7 +1054,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                                     <button
                                       className="btn secondary"
                                       style={{ ...smallButtonStyle, color: "var(--bad)", borderColor: "rgba(239, 68, 68, 0.4)", background: "rgba(239, 68, 68, 0.05)" }}
-                                      onClick={() => handleDeleteMarcoLog(h.id)}
+                                      onClick={() => handleDeleteMarcoLog(h.id, USER_ACTIONS.includes(h.acao))}
                                     >
                                       🗑️ Excluir
                                     </button>
@@ -1055,9 +1063,13 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                               </div>
 
                               {isEditing ? (
-                                <div className="card" style={{ padding: 12, marginTop: 8, background: "rgba(0,0,0,0.2)", borderColor: "var(--accent)" }}>
-                                  <strong style={{ fontSize: 12, display: "block", marginBottom: 8 }}>Editar Registro de Avaliação</strong>
-                                  
+                                <div className="card" style={{ padding: 12, marginTop: 8, background: "rgba(0,0,0,0.2)", borderColor: USER_ACTIONS.includes(h.acao) ? "var(--warn)" : "var(--accent)" }}>
+                                  <strong style={{ fontSize: 12, display: "block", marginBottom: 8 }}>Editar Registro {USER_ACTIONS.includes(h.acao) ? "de Atividade do Proponente" : "de Avaliação"}</strong>
+                                  {USER_ACTIONS.includes(h.acao) && (
+                                    <div style={{ fontSize: 11, color: "var(--warn)", background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: 8, padding: "8px 10px", marginBottom: 10 }}>
+                                      ⚠️ <strong>Atenção:</strong> Este registro foi submetido pelo proponente. Ao salvar, você estará alterando o histórico oficial da entrega do usuário.
+                                    </div>
+                                  )}
                                   {h.nota !== null && (
                                     <div className="row" style={{ marginBottom: 10 }}>
                                       <div className="label" style={{ fontSize: 11 }}>Nota da Entrega (0 a 10)</div>
