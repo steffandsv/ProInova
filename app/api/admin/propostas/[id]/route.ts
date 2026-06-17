@@ -24,6 +24,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
         },
         equipe: true,
         marcos: {
+          include: { evidencias: { orderBy: { createdAt: "desc" } } },
           orderBy: { mes: "asc" }
         },
         avaliacoes: {

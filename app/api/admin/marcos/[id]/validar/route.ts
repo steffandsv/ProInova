@@ -14,10 +14,14 @@ export async function POST(request: Request, { params }: { params: { id: string 
     }
 
     const body = await request.json();
-    const { novoStatus, comentario } = body;
+    const { novoStatus, comentario, nota } = body;
 
-    if (!["VALIDADO", "AJUSTE_SOLICITADO", "REJEITADO"].includes(novoStatus)) {
-      return NextResponse.json({ message: "Status inválido. Use VALIDADO, AJUSTE_SOLICITADO ou REJEITADO." }, { status: 400 });
+    if (!["SUBMETIDO", "VALIDADO", "AJUSTE_SOLICITADO", "REJEITADO"].includes(novoStatus)) {
+      return NextResponse.json({ message: "Status inválido. Use SUBMETIDO, VALIDADO, AJUSTE_SOLICITADO ou REJEITADO." }, { status: 400 });
+    }
+
+    if (nota !== undefined && nota !== null && (typeof nota !== "number" || nota < 0 || nota > 10)) {
+      return NextResponse.json({ message: "A nota deve ser um número entre 0 e 10." }, { status: 400 });
     }
 
     const marco = await prisma.marco.findUnique({
@@ -29,8 +33,8 @@ export async function POST(request: Request, { params }: { params: { id: string 
       return NextResponse.json({ message: "Marco não encontrado" }, { status: 404 });
     }
 
-    if (marco.status !== "SUBMETIDO") {
-      return NextResponse.json({ message: "O marco precisa estar com status SUBMETIDO para ser validado" }, { status: 400 });
+    if (marco.status === "PENDENTE") {
+      return NextResponse.json({ message: "O marco ainda está pendente e não possui entregas a serem avaliadas." }, { status: 400 });
     }
 
     await prisma.$transaction(async (tx: any) => {
@@ -38,8 +42,9 @@ export async function POST(request: Request, { params }: { params: { id: string 
         where: { id: params.id },
         data: {
           status: novoStatus,
-          comentarioCoordenacao: comentario || null,
+          comentarioCoordenacao: novoStatus === "SUBMETIDO" ? null : (comentario || null),
           validadoEm: novoStatus === "VALIDADO" ? new Date() : null,
+          nota: typeof nota === "number" ? nota : undefined,
         },
       });
 
@@ -48,8 +53,8 @@ export async function POST(request: Request, { params }: { params: { id: string 
         action: `MARCO_${novoStatus}`,
         entityType: "Marco",
         entityId: params.id,
-        before: { status: marco.status },
-        after: { status: novoStatus, comentario },
+        before: { status: marco.status, nota: marco.nota },
+        after: { status: novoStatus, comentario, nota },
         ip: request.headers.get("x-forwarded-for") || undefined,
       }, tx);
     });

@@ -120,48 +120,50 @@ export default function AdminPropostaAvaliarCMAA({ params }: { params: { id: str
             <p className="p">O Edital não possui configuração de Pesos da Matriz. Apenas o parecer técnico será enviado.</p>
           </div>
         ) : (
-          <table className="table" style={{ width: "100%", fontSize: 13, borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ borderBottom: "1px solid var(--border)", background: "rgba(255,255,255,0.02)" }}>
-                <th style={{ padding: 10, textAlign: "left" }}>Critério (Anexo III)</th>
-                <th style={{ padding: 10, textAlign: "center", width: 80 }}>Peso</th>
-                <th style={{ padding: 10, textAlign: "center", width: 120 }}>Nota (0-10)</th>
-                <th style={{ padding: 10, textAlign: "center", width: 120 }}>Pontuação</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pesos.map((p: any, i: number) => {
-                const numVal = notas[p.criterio] || 0;
-                return (
-                  <tr key={i} style={{ borderBottom: "1px solid var(--border)" }}>
-                    <td style={{ padding: 10, lineHeight: 1.4 }}>{p.criterio}</td>
-                    <td style={{ padding: 10, textAlign: "center" }}>x {p.peso}</td>
-                    <td style={{ padding: 10 }}>
-                      <input 
-                        className="input" 
-                        type="number" 
-                        min="0" 
-                        max="10" 
-                        step="0.5"
-                        value={numVal} 
-                        onChange={(e) => setNotas({...notas, [p.criterio]: Number(e.target.value)})}
-                        style={{ textAlign: "center" }}
-                      />
-                    </td>
-                    <td style={{ padding: 10, textAlign: "center", fontWeight: "bold" }}>
-                      {(numVal * p.peso).toFixed(1)}
-                    </td>
-                  </tr>
-                );
-              })}
-              <tr style={{ background: "rgba(255,255,255,0.05)" }}>
-                <td colSpan={3} style={{ padding: 14, textAlign: "right", fontSize: 16 }}><strong>Nota Final Ponderada:</strong></td>
-                <td style={{ padding: 14, textAlign: "center", fontSize: 18, fontWeight: "bold", color: "var(--accent)" }}>
-                  {notaFinal.toFixed(2)}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <div style={{ overflowX: "auto", border: "1px solid var(--border)", borderRadius: 12, marginBottom: 14 }}>
+            <table className="table" style={{ width: "100%", fontSize: 13, borderCollapse: "collapse", margin: 0 }}>
+              <thead>
+                <tr style={{ borderBottom: "1px solid var(--border)", background: "rgba(255,255,255,0.02)" }}>
+                  <th style={{ padding: 10, textAlign: "left" }}>Critério (Anexo III)</th>
+                  <th style={{ padding: 10, textAlign: "center", width: 80 }}>Peso</th>
+                  <th style={{ padding: 10, textAlign: "center", width: 120 }}>Nota (0-10)</th>
+                  <th style={{ padding: 10, textAlign: "center", width: 120 }}>Pontuação</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pesos.map((p: any, i: number) => {
+                  const numVal = notas[p.criterio] || 0;
+                  return (
+                    <tr key={i} style={{ borderBottom: "1px solid var(--border)" }}>
+                      <td style={{ padding: 10, lineHeight: 1.4 }}>{p.criterio}</td>
+                      <td style={{ padding: 10, textAlign: "center" }}>x {p.peso}</td>
+                      <td style={{ padding: 10 }}>
+                        <input 
+                          className="input" 
+                          type="number" 
+                          min="0" 
+                          max="10" 
+                          step="0.5"
+                          value={numVal} 
+                          onChange={(e) => setNotas({...notas, [p.criterio]: Number(e.target.value)})}
+                          style={{ textAlign: "center" }}
+                        />
+                      </td>
+                      <td style={{ padding: 10, textAlign: "center", fontWeight: "bold" }}>
+                        {(numVal * p.peso).toFixed(1)}
+                      </td>
+                    </tr>
+                  );
+                })}
+                <tr style={{ background: "rgba(255,255,255,0.05)" }}>
+                  <td colSpan={3} style={{ padding: 14, textAlign: "right", fontSize: 16 }}><strong>Nota Final Ponderada:</strong></td>
+                  <td style={{ padding: 14, textAlign: "center", fontSize: 18, fontWeight: "bold", color: "var(--accent)" }}>
+                    {notaFinal.toFixed(2)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         )}
 
         <div className="row" style={{ marginTop: 24 }}>

@@ -52,7 +52,7 @@ export default function AdminLancamentoPage() {
   }
 
   return (
-    <div className="grid" style={{ gap: 14 }}>
+    <div className="grid wide-layout" style={{ gap: 14 }}>
       <div className="card">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
           <h1 className="h1">🚀 Inscrições no Lançamento</h1>

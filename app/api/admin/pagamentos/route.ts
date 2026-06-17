@@ -36,6 +36,8 @@ export async function GET(request: Request) {
     // Calcular valor por marco
     const lote = marcosValidados.map((m) => {
       const teto = m.proposta.edital?.config?.tetoMensal || 1000;
+      const notaMultiplier = typeof m.nota === "number" ? m.nota / 10 : 1.0;
+      const valorComNota = teto * notaMultiplier;
       return {
         marcoId: m.id,
         mes: m.mes,
@@ -46,12 +48,13 @@ export async function GET(request: Request) {
         modalidade: m.proposta.modalidade,
         proponente: m.proposta.proponente.nome,
         cpfProponente: m.proposta.proponente.cpf,
-        valorMensal: teto,
+        nota: m.nota,
+        valorMensal: valorComNota,
         rateio: m.proposta.equipe.map((eq) => ({
           nome: eq.nome,
           cpf: eq.cpf,
           percentual: eq.percentualRateio,
-          valor: (teto * eq.percentualRateio) / 100,
+          valor: (valorComNota * eq.percentualRateio) / 100,
         })),
       };
     });
@@ -59,12 +62,12 @@ export async function GET(request: Request) {
     // Exportação CSV
     if (format === "csv") {
       const lines = [
-        "Marco ID;Mês;Proposta;Proponente;CPF;Modalidade;Valor Mensal;Membro;CPF Membro;% Rateio;Valor Rateio;Validado Em",
+        "Marco ID;Mês;Proposta;Proponente;CPF;Modalidade;Nota;Valor Mensal;Membro;CPF Membro;% Rateio;Valor Rateio;Validado Em",
       ];
       for (const item of lote) {
         for (const r of item.rateio) {
           lines.push(
-            `${item.marcoId};${item.mes};${item.propostaTitulo};${item.proponente};${item.cpfProponente};${item.modalidade};${item.valorMensal};${r.nome};${r.cpf};${r.percentual}%;${r.valor.toFixed(2)};${item.validadoEm ? new Date(item.validadoEm).toLocaleDateString("pt-BR") : ""}`
+            `${item.marcoId};${item.mes};${item.propostaTitulo};${item.proponente};${item.cpfProponente};${item.modalidade};${item.nota ?? 10};${item.valorMensal.toFixed(2)};${r.nome};${r.cpf};${r.percentual}%;${r.valor.toFixed(2)};${item.validadoEm ? new Date(item.validadoEm).toLocaleDateString("pt-BR") : ""}`
           );
         }
       }

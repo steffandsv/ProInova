@@ -134,6 +134,9 @@ a:hover {
   padding: 28px 20px 44px;
   max-width: 1080px;
 }
+.app-main:has(.wide-layout) {
+  max-width: 1400px;
+}
 .app-footer {
   padding: 16px 20px;
   border-top: 1px solid var(--border);
@@ -287,11 +290,17 @@ a:hover {
   border-radius: 22px;
   padding: 18px 18px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
 }
 
 .grid {
   display: grid;
   gap: 14px;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
 }
 .grid.two {
   grid-template-columns: repeat(2, minmax(0, 1fr));

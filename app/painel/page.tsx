@@ -141,7 +141,7 @@ export default function PainelPage() {
                         <Link href={`/propostas/nova?draft=${p.id}`} className="cta-btn cta-btn--primary" style={{ padding: "8px 16px", fontSize: 14, background: "linear-gradient(135deg, #f59e0b, #fbbf24)", border: "none" }}>
                           ⚠️ Revisar e Resubmeter
                         </Link>
-                      ) : p.status === "EM_EXECUCAO" ? (
+                      ) : ["HOMOLOGADA", "TERMO_OUTORGA", "EM_EXECUCAO"].includes(p.status) ? (
                         <Link href={`/propostas/${p.id}`} className="cta-btn cta-btn--ghost" style={{ padding: "8px 16px", fontSize: 14, borderColor: "var(--good)" }}>
                           🚀 Marcos e Evidências
                         </Link>

@@ -20,7 +20,7 @@ export default function AdminPagamentosPage() {
   if (!data) return <div className="card"><p className="p">Erro ao carregar dados.</p></div>;
 
   return (
-    <div className="grid" style={{ gap: 14 }}>
+    <div className="grid wide-layout" style={{ gap: 14 }}>
       <div className="card">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h1 className="h1">Gestão de Pagamentos</h1>

@@ -19,6 +19,83 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
   const [novoParecer, setNovoParecer] = useState("");
   const [savingNovoParecer, setSavingNovoParecer] = useState(false);
 
+  const [evaluatingMarcoId, setEvaluatingMarcoId] = useState<string | null>(null);
+  const [comentarioMarco, setComentarioMarco] = useState("");
+  const [notaMarco, setNotaMarco] = useState("10");
+  const [validatingMarco, setValidatingMarco] = useState(false);
+  const [togglingEvidenciaId, setTogglingEvidenciaId] = useState<string | null>(null);
+
+  async function loadData(showLoading = false) {
+    if (showLoading) setLoading(true);
+    try {
+      const res = await fetch(`/api/admin/propostas/${params.id}`);
+      const json = await res.json();
+      if (json.ok) {
+        setData(json.data);
+      } else {
+        setError(json.error || "Erro ao atualizar dados.");
+      }
+    } catch {
+      setError("Falha de rede.");
+    } finally {
+      if (showLoading) setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadData(true);
+  }, [params.id]);
+
+  async function handleValidarMarco(marcoId: string, status: "SUBMETIDO" | "VALIDADO" | "AJUSTE_SOLICITADO" | "REJEITADO") {
+    setValidatingMarco(true);
+    try {
+      const parsedNota = status === "VALIDADO" ? Number(notaMarco) : undefined;
+      const res = await fetch(`/api/admin/marcos/${marcoId}/validar`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          novoStatus: status, 
+          comentario: status === "SUBMETIDO" ? "" : comentarioMarco,
+          nota: parsedNota,
+        }),
+      });
+      if (res.ok) {
+        setEvaluatingMarcoId(null);
+        setComentarioMarco("");
+        setNotaMarco("10");
+        await loadData();
+      } else {
+        const json = await res.json();
+        alert(json.message || "Erro ao avaliar marco.");
+      }
+    } catch {
+      alert("Falha ao enviar decisão do marco.");
+    } finally {
+      setValidatingMarco(false);
+    }
+  }
+
+  async function handleTogglePublicaEvidencia(evId: string, currentPublica: boolean) {
+    setTogglingEvidenciaId(evId);
+    try {
+      const res = await fetch(`/api/admin/evidencias/${evId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ publica: !currentPublica }),
+      });
+      if (res.ok) {
+        await loadData();
+      } else {
+        const json = await res.json();
+        alert(json.message || "Erro ao alterar visibilidade da evidência.");
+      }
+    } catch {
+      alert("Falha ao conectar com o servidor.");
+    } finally {
+      setTogglingEvidenciaId(null);
+    }
+  }
+
   async function handleEditParecer(avId: string) {
     if (!editingParecerText.trim()) return;
     setIsSubmitting(true);
@@ -29,7 +106,8 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
         body: JSON.stringify({ parecer: editingParecerText }),
       });
       if (res.ok) {
-        window.location.reload();
+        setEditingParecerId(null);
+        await loadData();
       } else {
         alert("Erro ao editar parecer.");
       }
@@ -39,17 +117,6 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
       setIsSubmitting(false);
     }
   }
-
-  useEffect(() => {
-    fetch(`/api/admin/propostas/${params.id}`)
-      .then((r) => r.json())
-      .then((res) => {
-        if (res.ok) setData(res.data);
-        else setError(res.error || "Erro ao carregar");
-        setLoading(false);
-      })
-      .catch(() => setError("Falha de rede"));
-  }, [params.id]);
 
   async function handleNovoParecer() {
     if (!novoParecer.trim()) return;
@@ -62,7 +129,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
       });
       if (res.ok) {
         setNovoParecer("");
-        window.location.reload();
+        await loadData();
       } else {
         const json = await res.json();
         alert(json.error || "Erro ao registrar parecer.");
@@ -127,7 +194,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
       if (!res.ok) {
         setError(json.message || "Erro na transição");
       } else {
-        window.location.reload();
+        await loadData();
       }
     } catch {
       setError("Falha de rede");
@@ -185,7 +252,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
       {/* SCREEN LAYOUT — hidden during print                               */}
       {/* ═══════════════════════════════════════════════════════════════════ */}
       <div className="screen-layout">
-        <div className="grid" style={{ gap: 14 }}>
+        <div className="grid wide-layout" style={{ gap: 14 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
             <h1 className="h1">Protocolo {data.id.split("-")[0].toUpperCase()}</h1>
             <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
@@ -588,14 +655,173 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
             <h3 className="h3" style={{ marginBottom: 14 }}>Marcos e Entregáveis (Cronograma)</h3>
             <div className="grid">
               {data.marcos.map((m: any) => (
-                <div key={m.id} style={{ padding: 10, border: "1px solid var(--border)", borderRadius: 6, overflow: "hidden" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-                    <strong style={{ fontSize: 13 }}>Mês {m.mes}</strong>
-                    <span className="badge">{m.status}</span>
+                <div key={m.id} style={{ padding: 14, border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden", background: "rgba(255,255,255,0.01)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div>
+                      <strong style={{ fontSize: 15 }}>Mês {m.mes}</strong>
+                      <span className="badge" style={{ marginLeft: 10 }}>{m.status}</span>
+                      {m.status === "VALIDADO" && (
+                        <span className="badge" style={{ marginLeft: 8, borderColor: "var(--accent)", color: "var(--accent)" }}>
+                          Nota: {m.nota ?? 10} (Mult: {((m.nota ?? 10) / 10).toFixed(2)})
+                        </span>
+                      )}
+                    </div>
+                    {m.status === "SUBMETIDO" ? (
+                      <button
+                        className="btn secondary"
+                        style={{ padding: "6px 12px", fontSize: 12 }}
+                        onClick={() => {
+                          if (evaluatingMarcoId === m.id) {
+                            setEvaluatingMarcoId(null);
+                          } else {
+                            setEvaluatingMarcoId(m.id);
+                            setNotaMarco(String(m.nota ?? 10));
+                            setComentarioMarco("");
+                          }
+                        }}
+                      >
+                        {evaluatingMarcoId === m.id ? "Cancelar Avaliação" : "⚖️ Avaliar Entrega"}
+                      </button>
+                    ) : m.status !== "PENDENTE" && (
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <button
+                          className="btn secondary"
+                          style={{ padding: "6px 12px", fontSize: 12 }}
+                          onClick={() => {
+                            if (evaluatingMarcoId === m.id) {
+                              setEvaluatingMarcoId(null);
+                            } else {
+                              setEvaluatingMarcoId(m.id);
+                              setNotaMarco(String(m.nota ?? 10));
+                              setComentarioMarco(m.comentarioCoordenacao || "");
+                            }
+                          }}
+                        >
+                          {evaluatingMarcoId === m.id ? "Cancelar" : "⚖️ Reavaliar"}
+                        </button>
+                        <button
+                          className="btn secondary"
+                          style={{ padding: "6px 12px", fontSize: 12, borderColor: "var(--bad)", color: "var(--bad)" }}
+                          disabled={validatingMarco}
+                          onClick={() => {
+                            if (confirm("Tem certeza que deseja anular esta avaliação? O marco voltará ao status 'SUBMETIDO'.")) {
+                              handleValidarMarco(m.id, "SUBMETIDO");
+                            }
+                          }}
+                        >
+                          🔄 Anular Avaliação
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  <div className="prose" style={{ margin: "5px 0", fontSize: 13, color: "var(--muted)" }}><strong>Entregável:</strong> {m.entregavel}</div>
-                  <div className="prose" style={{ margin: "5px 0", fontSize: 13, color: "var(--muted)" }}><strong>Evidência:</strong> {m.evidenciaEsperada}</div>
-                  <div className="prose" style={{ margin: "5px 0", fontSize: 13, color: "var(--muted)" }}><strong>Critério:</strong> {m.criterioAceitacao}</div>
+                  <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.6 }}>
+                    <strong>Entregável:</strong> {m.entregavel}<br />
+                    <strong>Evidência Esperada:</strong> {m.evidenciaEsperada}<br />
+                    <strong>Critério:</strong> {m.criterioAceitacao}
+                  </div>
+
+                  {m.comentarioCoordenacao && (
+                    <div style={{ marginTop: 10, padding: 10, background: "rgba(255,200,0,0.05)", borderRadius: 6, borderLeft: "3px solid var(--warn)", fontSize: 13 }}>
+                      <strong>Feedback da Coordenação:</strong> {m.comentarioCoordenacao}
+                    </div>
+                  )}
+
+                  {/* Form de Avaliação do Marco */}
+                  {evaluatingMarcoId === m.id && (
+                    <div className="card" style={{ padding: 14, marginTop: 14, borderColor: "var(--accent)", background: "rgba(0,0,0,0.2)" }}>
+                      <strong style={{ fontSize: 13 }}>Avaliar Prestação de Contas - Mês {m.mes}</strong>
+                      
+                      <div className="row" style={{ marginTop: 10 }}>
+                        <div className="label">Nota da Entrega (0 a 10) - Multiplicador de pagamento</div>
+                        <input
+                          type="number"
+                          className="input"
+                          min="0"
+                          max="10"
+                          step="0.1"
+                          value={notaMarco}
+                          onChange={(e) => setNotaMarco(e.target.value)}
+                          placeholder="Ex: 10 (Multiplicador 1.0) ou 8.5 (Multiplicador 0.85)"
+                        />
+                      </div>
+
+                      <div className="row" style={{ marginTop: 10 }}>
+                        <div className="label">Comentário / Feedback (Obrigatório para Rejeição ou Ajuste)</div>
+                        <textarea
+                          className="textarea"
+                          value={comentarioMarco}
+                          onChange={(e) => setComentarioMarco(e.target.value)}
+                          placeholder="Digite as observações, elogios ou justificativas dos ajustes solicitados..."
+                        />
+                      </div>
+                      <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
+                        <button
+                          className="btn"
+                          style={{ background: "var(--good)" }}
+                          disabled={validatingMarco}
+                          onClick={() => handleValidarMarco(m.id, "VALIDADO")}
+                        >
+                          {validatingMarco ? "Processando..." : "✅ Validar (Aprovar)"}
+                        </button>
+                        <button
+                          className="btn"
+                          style={{ background: "var(--warn)", color: "#fff" }}
+                          disabled={validatingMarco || !comentarioMarco.trim()}
+                          onClick={() => handleValidarMarco(m.id, "AJUSTE_SOLICITADO")}
+                        >
+                          {validatingMarco ? "Processando..." : "🔄 Solicitar Ajustes"}
+                        </button>
+                        <button
+                          className="btn"
+                          style={{ background: "var(--bad)" }}
+                          disabled={validatingMarco || !comentarioMarco.trim()}
+                          onClick={() => handleValidarMarco(m.id, "REJEITADO")}
+                        >
+                          {validatingMarco ? "Processando..." : "❌ Rejeitar"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Evidências Submetidas */}
+                  {m.evidencias?.length > 0 && (
+                    <div style={{ marginTop: 14, paddingTop: 10, borderTop: "1px solid var(--border)" }}>
+                      <strong style={{ fontSize: 13, color: "var(--muted)", display: "block", marginBottom: 8 }}>Evidências / Provas Submetidas:</strong>
+                      <div className="grid" style={{ gap: 8 }}>
+                        {m.evidencias.map((ev: any) => (
+                          <div key={ev.id} style={{ padding: 10, background: "rgba(255,255,255,0.02)", borderRadius: 6, fontSize: 13, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+                            <div style={{ flex: 1, minWidth: 200 }}>
+                              <span className="badge">{ev.tipo}</span> <span style={{ marginLeft: 6 }}>{ev.descricao}</span>
+                              {ev.url && (
+                                <a href={ev.url} target="_blank" rel="noopener noreferrer" style={{ marginLeft: 10, color: "var(--accent)", fontWeight: "bold" }}>
+                                  🔗 Abrir Prova
+                                </a>
+                              )}
+                              <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
+                                Enviado em: {new Date(ev.createdAt).toLocaleString("pt-BR")}
+                              </div>
+                            </div>
+                            <div>
+                              <button
+                                className="btn secondary"
+                                style={{
+                                  padding: "6px 12px",
+                                  fontSize: 12,
+                                  borderColor: ev.publica ? "var(--good)" : "var(--border)",
+                                  background: ev.publica ? "rgba(34, 197, 94, 0.15)" : "transparent",
+                                  color: ev.publica ? "var(--good)" : "var(--text)"
+                                }}
+                                disabled={togglingEvidenciaId === ev.id}
+                                onClick={() => handleTogglePublicaEvidencia(ev.id, ev.publica)}
+                              >
+                                {togglingEvidenciaId === ev.id ? "Aguarde..." : ev.publica ? "🌐 Pública na Transparência" : "🔒 Privada (Ocultar)"}
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

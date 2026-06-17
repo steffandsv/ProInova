@@ -7,7 +7,11 @@
     "start": "next start -p 3000",
     "lint": "next lint",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate deploy"
+    "prisma:migrate": "prisma migrate deploy",
+    "db:seed": "npx tsx scripts/seed-edital.ts",
+    "db:seed-municipe": "npx tsx scripts/seed-municipe.ts",
+    "db:test-proposal": "npx tsx scripts/prepare-test-proposal.ts",
+    "generate-password": "npx tsx scripts/generate-password.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.19.1",
@@ -29,6 +33,7 @@
     "eslint": "^8.57.0",
     "eslint-config-next": "^14.2.10",
     "prisma": "^5.19.1",
+    "tsx": "^4.19.1",
     "typescript": "^5.5.4"
   }
 }

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import ModalProjeto from "./ModalProjeto";
+import ModalFiscalizacao from "./ModalFiscalizacao";
 
 type ProjetoPublico = {
   id: string;
@@ -28,6 +29,7 @@ export default function TransparenciaPage() {
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState<"ALL" | "APROVADA" | "EM_EXECUCAO" | "CONCLUIDA" | "REPROVADA" | "DILIGENCIA">("APROVADA");
   const [modalApp, setModalApp] = useState<string | null>(null);
+  const [modalFiscalizacao, setModalFiscalizacao] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/transparencia")
@@ -202,9 +204,16 @@ export default function TransparenciaPage() {
                       transition: "width 0.5s ease",
                     }} />
                   </div>
-                  <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
+                  <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 10 }}>
+                    <button
+                      className="btn"
+                      onClick={() => setModalFiscalizacao(p.id)}
+                      style={{ fontSize: 12, padding: "6px 12px", background: "linear-gradient(135deg, var(--accent), #6d4aff)" }}
+                    >
+                      🔍 Fiscalização e Entregas
+                    </button>
                     <Link href={`/projeto/${p.id}`} className="btn secondary" style={{ fontSize: 12, padding: "6px 12px" }}>
-                      Ver Evidências do Projeto
+                      Ver Página Pública
                     </Link>
                   </div>
                 </div>
@@ -223,6 +232,11 @@ export default function TransparenciaPage() {
       {/* Modal Sobreposto Full */}
       {modalApp && (
         <ModalProjeto id={modalApp} onClose={() => setModalApp(null)} />
+      )}
+
+      {/* Modal de Fiscalização e Provas */}
+      {modalFiscalizacao && (
+        <ModalFiscalizacao id={modalFiscalizacao} onClose={() => setModalFiscalizacao(null)} />
       )}
     </div>
   );
