@@ -10,6 +10,7 @@ const EditalConfigSchema = z.object({
   pesosMatrizJson: z.array(z.object({ criterio: z.string(), peso: z.number() })),
   tetoMensal: z.number().min(0),
   duracaoMaxMeses: z.number().int().min(1).max(12),
+  ignorarPrazosMarcos: z.boolean().default(false),
 });
 
 const EditalCreateSchema = z.object({
@@ -65,6 +66,7 @@ export async function POST(req: Request) {
             pesosMatrizJson: config.pesosMatrizJson as any,
             tetoMensal: config.tetoMensal,
             duracaoMaxMeses: config.duracaoMaxMeses,
+            ignorarPrazosMarcos: config.ignorarPrazosMarcos,
           },
         },
       },

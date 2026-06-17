@@ -11,7 +11,21 @@ export async function GET(request: Request, { params }: { params: { id: string }
     const session = await requireAuth(request);
     const proposta = await prisma.proposta.findUnique({
       where: { id: params.id },
-      select: { proponenteId: true, status: true, titulo: true, duracaoMeses: true },
+      select: { 
+        proponenteId: true, 
+        status: true, 
+        titulo: true, 
+        duracaoMeses: true,
+        edital: {
+          select: {
+            config: {
+              select: {
+                ignorarPrazosMarcos: true
+              }
+            }
+          }
+        }
+      },
     });
 
     if (!proposta) {
@@ -25,7 +39,10 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
     const marcos = await prisma.marco.findMany({
       where: { propostaId: params.id },
-      include: { evidencias: { orderBy: { createdAt: "desc" } } },
+      include: { 
+        evidencias: { orderBy: { createdAt: "desc" } },
+        historico: { orderBy: { createdAt: "asc" } }
+      },
       orderBy: { mes: "asc" },
     });
 
@@ -50,7 +67,23 @@ export async function POST(request: Request, { params }: { params: { id: string 
     // Verifica que o marco pertence à proposta do proponente
     const marco = await prisma.marco.findUnique({
       where: { id: marcoId },
-      include: { proposta: { select: { proponenteId: true, status: true } } },
+      include: { 
+        proposta: { 
+          select: { 
+            proponenteId: true, 
+            status: true,
+            edital: {
+              select: {
+                config: {
+                  select: {
+                    ignorarPrazosMarcos: true,
+                  },
+                },
+              },
+            },
+          } 
+        } 
+      },
     });
 
     if (!marco) {
@@ -69,6 +102,16 @@ export async function POST(request: Request, { params }: { params: { id: string 
       return NextResponse.json({ message: "Este marco não aceita novas evidências no status atual" }, { status: 400 });
     }
 
+    const ignorarPrazos = marco.proposta.edital.config?.ignorarPrazosMarcos ?? false;
+    const currentDay = new Date().getDate();
+    if (currentDay > 15 && !ignorarPrazos) {
+      return NextResponse.json({ message: "O período de envio e reenvio de evidências expirou (limite até dia 15)." }, { status: 400 });
+    }
+
+    if (marco.status === "PENDENTE" && currentDay > 5 && !ignorarPrazos) {
+      return NextResponse.json({ message: "O prazo para o envio inicial de evidências expirou (limite até dia 05)." }, { status: 400 });
+    }
+
     await prisma.$transaction(async (tx: any) => {
       // Criar evidência
       await tx.evidencia.create({
@@ -85,6 +128,19 @@ export async function POST(request: Request, { params }: { params: { id: string 
       await tx.marco.update({
         where: { id: marcoId },
         data: { status: "SUBMETIDO" },
+      });
+
+      // Registrar histórico do marco
+      await tx.marcoHistorico.create({
+        data: {
+          marcoId,
+          autorId: session.userId,
+          autorNome: session.nome,
+          acao: marco.status === "PENDENTE" ? "SUBMISSAO" : "REENVIO",
+          statusAnterior: marco.status,
+          statusNovo: "SUBMETIDO",
+          comentario: `Evidência de entrega enviada. Descrição: ${descricao}`,
+        },
       });
 
       await logAudit({
@@ -122,7 +178,19 @@ export async function PUT(request: Request, { params }: { params: { id: string }
         marco: {
           include: {
             proposta: {
-              select: { proponenteId: true, status: true }
+              select: { 
+                proponenteId: true, 
+                status: true,
+                edital: {
+                  select: {
+                    config: {
+                      select: {
+                        ignorarPrazosMarcos: true
+                      }
+                    }
+                  }
+                }
+              }
             }
           }
         }
@@ -148,6 +216,12 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       return NextResponse.json({ message: "Não é possível editar evidência de um marco já validado" }, { status: 400 });
     }
 
+    const ignorarPrazos = evidencia.marco.proposta.edital.config?.ignorarPrazosMarcos ?? false;
+    const currentDay = new Date().getDate();
+    if (currentDay > 15 && !ignorarPrazos) {
+      return NextResponse.json({ message: "O período de alteração de evidências expirou (limite até dia 15)." }, { status: 400 });
+    }
+
     await prisma.$transaction(async (tx: any) => {
       // Atualizar evidência
       await tx.evidencia.update({
@@ -161,12 +235,26 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       });
 
       // Se o marco estiver como REJEITADO ou AJUSTE_SOLICITADO, muda para SUBMETIDO
+      const novoStatus = ["REJEITADO", "AJUSTE_SOLICITADO"].includes(evidencia.marco.status) ? "SUBMETIDO" : evidencia.marco.status;
       if (["REJEITADO", "AJUSTE_SOLICITADO"].includes(evidencia.marco.status)) {
         await tx.marco.update({
           where: { id: evidencia.marcoId },
           data: { status: "SUBMETIDO" }
         });
       }
+
+      // Registrar histórico do marco
+      await tx.marcoHistorico.create({
+        data: {
+          marcoId: evidencia.marcoId,
+          autorId: session.userId,
+          autorNome: session.nome,
+          acao: "EDICAO",
+          statusAnterior: evidencia.marco.status,
+          statusNovo: novoStatus,
+          comentario: `Evidência de entrega editada. Nova descrição: ${descricao}`,
+        },
+      });
 
       await logAudit({
         userId: session.userId,
@@ -204,7 +292,19 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
         marco: {
           include: {
             proposta: {
-              select: { proponenteId: true, status: true }
+              select: { 
+                proponenteId: true, 
+                status: true,
+                edital: {
+                  select: {
+                    config: {
+                      select: {
+                        ignorarPrazosMarcos: true
+                      }
+                    }
+                  }
+                }
+              }
             }
           }
         }
@@ -230,6 +330,12 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
       return NextResponse.json({ message: "Não é possível anular evidência de um marco já validado" }, { status: 400 });
     }
 
+    const ignorarPrazos = evidencia.marco.proposta.edital.config?.ignorarPrazosMarcos ?? false;
+    const currentDay = new Date().getDate();
+    if (currentDay > 15 && !ignorarPrazos) {
+      return NextResponse.json({ message: "O período de exclusão de evidências expirou (limite até dia 15)." }, { status: 400 });
+    }
+
     await prisma.$transaction(async (tx: any) => {
       // Deletar a evidência
       await tx.evidencia.delete({
@@ -241,6 +347,8 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
         where: { marcoId: evidencia.marcoId },
       });
 
+      const novoStatus = countRemaining === 0 ? "PENDENTE" : evidencia.marco.status;
+
       // Se não restar nenhuma evidência, o marco volta a ser PENDENTE
       if (countRemaining === 0) {
         await tx.marco.update({
@@ -249,9 +357,22 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
         });
       }
 
+      // Registrar histórico do marco
+      await tx.marcoHistorico.create({
+        data: {
+          marcoId: evidencia.marcoId,
+          autorId: session.userId,
+          autorNome: session.nome,
+          acao: "REMOCAO",
+          statusAnterior: evidencia.marco.status,
+          statusNovo: novoStatus,
+          comentario: `Evidência de entrega removida pelo proponente.`,
+        },
+      });
+
       await logAudit({
         userId: session.userId,
-        action: "EVIDENCIA_REMOVIDA",
+        action: "EVIDENCIA_REMOVEDA",
         entityType: "Evidencia",
         entityId: evidenciaId,
         before: { tipo: evidencia.tipo, url: evidencia.url, descricao: evidencia.descricao, publica: evidencia.publica },

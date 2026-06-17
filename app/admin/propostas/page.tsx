@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PropostaStatus } from "@prisma/client";
+import { statusLabelMap, statusColors } from "@/constants/status";
+
+
 
 type PropostaData = {
   id: string;
@@ -135,7 +138,19 @@ export default function AdminPropostasPage() {
                       <span className="badge" style={{ marginTop: 4, display: "inline-block" }}>{prop.edital.modalidade}</span>
                     </td>
                     <td style={{ padding: "12px 10px", whiteSpace: "nowrap" }}>
-                      <span className="badge">{prop.status}</span>
+                      <span 
+                        className="badge"
+                        style={{
+                          backgroundColor: statusColors[prop.status] || "var(--border)",
+                          color: "#fff",
+                          fontWeight: "bold",
+                          fontSize: "11px",
+                          border: "none",
+                          padding: "4px 8px"
+                        }}
+                      >
+                        {statusLabelMap[prop.status] || prop.status}
+                      </span>
                     </td>
                     <td style={{ padding: "12px 10px", fontSize: 13, whiteSpace: "nowrap" }}>
                       👤 {prop._count.equipe} membro(s)<br/>

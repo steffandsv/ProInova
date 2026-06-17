@@ -2,11 +2,49 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import {
+  statusLabelMap,
+  statusColors,
+  statusColorsPrint,
+  marcoStatusLabelMap,
+  marcoStatusColors as marcoStatusColorMap,
+  marcoStatusIcons as marcoStatusIconMap,
+  marcoAcaoLabelMap,
+} from "@/constants/status";
+
+const buttonStyle: React.CSSProperties = {
+  fontSize: "14px",
+  fontWeight: 650,
+  padding: "10px 18px",
+  borderRadius: "12px",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: "8px",
+  cursor: "pointer",
+  transition: "all 0.2s ease",
+  height: "auto",
+};
+
+const smallButtonStyle: React.CSSProperties = {
+  fontSize: "12px",
+  fontWeight: 600,
+  padding: "6px 12px",
+  borderRadius: "10px",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: "6px",
+  cursor: "pointer",
+  transition: "all 0.2s ease",
+  height: "auto",
+};
 
 export default function AdminPropostaDetail({ params }: { params: { id: string } }) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [activeTab, setActiveTab] = useState<"avaliacao" | "geral" | "marcos" | "historico">("avaliacao");
 
   const [parecerTexto, setParecerTexto] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -24,6 +62,57 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
   const [notaMarco, setNotaMarco] = useState("10");
   const [validatingMarco, setValidatingMarco] = useState(false);
   const [togglingEvidenciaId, setTogglingEvidenciaId] = useState<string | null>(null);
+
+  const [editingMarcoLogId, setEditingMarcoLogId] = useState<string | null>(null);
+  const [editingMarcoLogText, setEditingMarcoLogText] = useState("");
+  const [editingMarcoLogNota, setEditingMarcoLogNota] = useState("");
+  const [isSavingMarcoLog, setIsSavingMarcoLog] = useState(false);
+
+  async function handleEditMarcoLog(logId: string) {
+    setIsSavingMarcoLog(true);
+    try {
+      const res = await fetch(`/api/admin/marcos/historico/${logId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          comentario: editingMarcoLogText,
+          nota: editingMarcoLogNota ? parseFloat(editingMarcoLogNota) : null,
+        }),
+      });
+      if (res.ok) {
+        setEditingMarcoLogId(null);
+        setEditingMarcoLogText("");
+        setEditingMarcoLogNota("");
+        await loadData();
+      } else {
+        const json = await res.json();
+        alert(json.error || "Erro ao salvar alteração do histórico.");
+      }
+    } catch {
+      alert("Falha ao salvar alteração.");
+    } finally {
+      setIsSavingMarcoLog(false);
+    }
+  }
+
+  async function handleDeleteMarcoLog(logId: string) {
+    if (!confirm("Tem certeza que deseja excluir esta avaliação do histórico? O status e a nota do marco serão recalculados automaticamente com base nos registros restantes.")) {
+      return;
+    }
+    try {
+      const res = await fetch(`/api/admin/marcos/historico/${logId}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        await loadData();
+      } else {
+        const json = await res.json();
+        alert(json.error || "Erro ao excluir avaliação do histórico.");
+      }
+    } catch {
+      alert("Falha ao excluir.");
+    }
+  }
 
   async function loadData(showLoading = false) {
     if (showLoading) setLoading(true);
@@ -144,37 +233,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
   if (loading) return <div className="card"><p className="p">Carregando...</p></div>;
   if (error || !data) return <div className="card"><p className="p" style={{ color: "var(--bad)" }}>{error}</p></div>;
 
-  const statusColors: Record<string, string> = {
-    RASCUNHO: "var(--muted)",
-    SUBMETIDA: "var(--accent)",
-    EM_TRIAGEM: "var(--warn)",
-    PARECER_EDUCACAO: "var(--warn)",
-    AVALIACAO_CMAA: "var(--warn)",
-    CLASSIFICADA: "var(--good)",
-    HOMOLOGADA: "var(--good)",
-    TERMO_OUTORGA: "var(--accent)",
-    EM_EXECUCAO: "var(--good)",
-    SUSPENSA: "var(--bad)",
-    EM_AJUSTE: "var(--warn)",
-    CANCELADA: "var(--bad)",
-    CONCLUIDA: "var(--good)",
-  };
-
-  const statusColorsPrint: Record<string, string> = {
-    RASCUNHO: "#999",
-    SUBMETIDA: "#7c5cff",
-    EM_TRIAGEM: "#f59e0b",
-    PARECER_EDUCACAO: "#f59e0b",
-    AVALIACAO_CMAA: "#f59e0b",
-    CLASSIFICADA: "#22c55e",
-    HOMOLOGADA: "#22c55e",
-    TERMO_OUTORGA: "#7c5cff",
-    EM_EXECUCAO: "#22c55e",
-    SUSPENSA: "#ef4444",
-    EM_AJUSTE: "#f59e0b",
-    CANCELADA: "#ef4444",
-    CONCLUIDA: "#22c55e",
-  };
+  // statusColors and statusColorsPrint imported from @/constants/status
 
   async function handleTransition(to: string, parecerOverride?: string) {
     setIsSubmitting(true);
@@ -256,13 +315,13 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
             <h1 className="h1">Protocolo {data.id.split("-")[0].toUpperCase()}</h1>
             <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-               <span className="badge" style={{ backgroundColor: statusColors[data.status] || "var(--border)", color: "#fff", padding: "5px 10px", fontSize: 13 }}>
-                 STATUS: {data.status}
+               <span className="badge" style={{ backgroundColor: statusColors[data.status] || "var(--border)", color: "#fff", padding: "6px 12px", fontSize: 13, fontWeight: "bold" }}>
+                 Status: {statusLabelMap[data.status] || data.status}
                </span>
-               <button className="print-btn" onClick={handlePrint}>
+               <button className="print-btn" onClick={handlePrint} style={{ ...buttonStyle, background: "rgba(255,255,255,0.06)", border: "1px solid var(--border)", color: "var(--text)" }}>
                  🖨️ Imprimir Relatório
                </button>
-               <Link href="/admin/propostas" className="btn secondary">Voltar</Link>
+               <Link href="/admin/propostas" className="btn secondary" style={buttonStyle}>Voltar</Link>
             </div>
           </div>
 
@@ -271,8 +330,98 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
             📋 <strong>Consulte a Lei Municipal de Inovação</strong> — Referência para avaliação
           </a>
 
-          {/* ======================= PROPOSTA CANCELADA: ações especiais ======================= */}
-          {data.status === "CANCELADA" && (
+          {/* Tabs Navigation */}
+          <div style={{
+            display: "flex",
+            gap: 8,
+            padding: 6,
+            background: "rgba(255, 255, 255, 0.03)",
+            border: "1px solid var(--border)",
+            borderRadius: 14,
+            marginTop: 14,
+            marginBottom: 14,
+            flexWrap: "wrap",
+            backdropFilter: "blur(12px)",
+          }}>
+            <button
+              onClick={() => setActiveTab("avaliacao")}
+              style={{
+                flex: 1,
+                minWidth: 120,
+                padding: "10px 14px",
+                borderRadius: 10,
+                border: "none",
+                background: activeTab === "avaliacao" ? "rgba(124, 92, 255, 0.2)" : "transparent",
+                color: activeTab === "avaliacao" ? "#fff" : "var(--muted)",
+                fontWeight: activeTab === "avaliacao" ? "700" : "500",
+                fontSize: 14,
+                cursor: "pointer",
+                transition: "all 0.2s ease",
+              }}
+            >
+              ⚖️ Avaliação da proposta
+            </button>
+            <button
+              onClick={() => setActiveTab("geral")}
+              style={{
+                flex: 1,
+                minWidth: 120,
+                padding: "10px 14px",
+                borderRadius: 10,
+                border: "none",
+                background: activeTab === "geral" ? "rgba(124, 92, 255, 0.2)" : "transparent",
+                color: activeTab === "geral" ? "#fff" : "var(--muted)",
+                fontWeight: activeTab === "geral" ? "700" : "500",
+                fontSize: 14,
+                cursor: "pointer",
+                transition: "all 0.2s ease",
+              }}
+            >
+              📋 Informações gerais
+            </button>
+            <button
+              onClick={() => setActiveTab("marcos")}
+              style={{
+                flex: 1,
+                minWidth: 120,
+                padding: "10px 14px",
+                borderRadius: 10,
+                border: "none",
+                background: activeTab === "marcos" ? "rgba(124, 92, 255, 0.2)" : "transparent",
+                color: activeTab === "marcos" ? "#fff" : "var(--muted)",
+                fontWeight: activeTab === "marcos" ? "700" : "500",
+                fontSize: 14,
+                cursor: "pointer",
+                transition: "all 0.2s ease",
+              }}
+            >
+              📅 Marcos e entregáveis
+            </button>
+            <button
+              onClick={() => setActiveTab("historico")}
+              style={{
+                flex: 1,
+                minWidth: 120,
+                padding: "10px 14px",
+                borderRadius: 10,
+                border: "none",
+                background: activeTab === "historico" ? "rgba(124, 92, 255, 0.2)" : "transparent",
+                color: activeTab === "historico" ? "#fff" : "var(--muted)",
+                fontWeight: activeTab === "historico" ? "700" : "500",
+                fontSize: 14,
+                cursor: "pointer",
+                transition: "all 0.2s ease",
+              }}
+            >
+              📜 Histórico e pareceres
+            </button>
+          </div>
+
+           {/* ======================= TAB: AVALIAÇÃO ======================= */}
+           {activeTab === "avaliacao" && (
+             <>
+               {/* ======================= PROPOSTA CANCELADA: ações especiais ======================= */}
+               {data.status === "CANCELADA" && (
             <div className="card" style={{ borderColor: "var(--bad)", background: "rgba(239,68,68,0.04)" }}>
               <h2 className="h2" style={{ color: "var(--bad)", marginBottom: 8 }}>Proposta Cancelada</h2>
               <p className="p" style={{ marginBottom: 20 }}>Esta proposta foi cancelada. Você pode devolvê-la ao proponente para revisão completa ou registrar um parecer complementar no histórico.</p>
@@ -280,7 +429,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
               {/* Devolver para revisão */}
               <div style={{ padding: 16, borderRadius: 10, border: "1px solid rgba(245,158,11,0.3)", background: "rgba(245,158,11,0.04)", marginBottom: 16 }}>
                 <strong style={{ fontSize: 14, color: "#fbbf24", display: "block", marginBottom: 8 }}>↩️ Devolver ao Proponente para Revisão</strong>
-                <p className="p" style={{ fontSize: 13, marginBottom: 10 }}>A proposta voltará ao status <strong>EM AJUSTE</strong>. O proponente poderá editar todos os campos (incluindo meses e entregáveis) e resubmeter.</p>
+                <p className="p" style={{ fontSize: 13, marginBottom: 10 }}>A proposta voltará ao status <strong>{statusLabelMap["EM_AJUSTE"] || "EM_AJUSTE"}</strong>. O proponente poderá editar todos os campos (incluindo meses e entregáveis) e resubmeter.</p>
                 <div className="label" style={{ marginBottom: 6 }}>Motivo da devolução (obrigatório — o proponente verá este texto)</div>
                 <textarea
                   className="textarea"
@@ -291,11 +440,11 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                 />
                 <button
                   className="btn"
-                  style={{ marginTop: 10, borderColor: "#f59e0b", color: "#fbbf24" }}
+                  style={{ ...buttonStyle, marginTop: 10, borderColor: "#f59e0b", color: "#fbbf24", background: "transparent" }}
                   disabled={isSubmitting || !parecerTexto.trim()}
                   onClick={() => handleTransition("EM_AJUSTE", parecerTexto)}
                 >
-                  {isSubmitting ? "Processando..." : "↩️ Devolver para Revisão (EM_AJUSTE)"}
+                  {isSubmitting ? "Processando..." : `↩️ Devolver para Revisão (${statusLabelMap["EM_AJUSTE"] || "EM_AJUSTE"})`}
                 </button>
               </div>
 
@@ -312,7 +461,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                 />
                 <button
                   className="btn secondary"
-                  style={{ marginTop: 10 }}
+                  style={{ ...buttonStyle, marginTop: 10 }}
                   disabled={savingNovoParecer || !novoParecer.trim()}
                   onClick={handleNovoParecer}
                 >
@@ -355,7 +504,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
               {decisao === "DEVOLVER" && (
                 <div className="row" style={{ marginTop: 14, padding: 14, borderRadius: 10, background: "rgba(245,158,11,0.05)", border: "1px solid rgba(245,158,11,0.2)" }}>
                   <p className="p" style={{ fontSize: 13, marginBottom: 10, color: "#fbbf24" }}>
-                    ↩️ A proposta será marcada como <strong>EM AJUSTE</strong>. O proponente poderá editar <strong>todos os campos</strong> — título, equipe, meses, entregáveis, evidências, etc. — e resubmeter. Todo o histórico é preservado.
+                    ↩️ A proposta será marcada como <strong>{statusLabelMap["EM_AJUSTE"] || "EM_AJUSTE"}</strong>. O proponente poderá editar <strong>todos os campos</strong> — título, equipe, meses, entregáveis, evidências, etc. — e resubmeter. Todo o histórico é preservado.
                   </p>
                 </div>
               )}
@@ -426,7 +575,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                   // Handle CMAA Matrix Route
                   if (data.status === "AVALIACAO_CMAA" && decisao === "APROVADA" && targetStatus === "CLASSIFICADA") {
                     return (
-                      <Link href={`/admin/propostas/${data.id}/avaliar`} className="cta-btn cta-btn--primary">
+                      <Link href={`/admin/propostas/${data.id}/avaliar`} className="cta-btn cta-btn--primary" style={buttonStyle}>
                         📋 Ir para Matriz de Avaliação CMAA
                       </Link>
                     );
@@ -435,7 +584,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                   // Handle Termo Outorga
                   if (data.status === "HOMOLOGADA" && decisao === "APROVADA" && targetStatus === "TERMO_OUTORGA") {
                     return (
-                      <Link href={`/admin/propostas/${data.id}/termo`} className="cta-btn cta-btn--primary">
+                      <Link href={`/admin/propostas/${data.id}/termo`} className="cta-btn cta-btn--primary" style={buttonStyle}>
                         📄 Gerar Termo de Outorga
                       </Link>
                     );
@@ -447,7 +596,11 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                   return (
                     <button
                       className={decisao === "APROVADA" ? "cta-btn cta-btn--primary" : decisao === "REPROVADA" ? "btn secondary" : "btn"}
-                      style={isDevolver ? { borderColor: "#f59e0b", color: "#fbbf24" } : undefined}
+                      style={
+                        isDevolver
+                          ? { ...buttonStyle, borderColor: "#f59e0b", color: "#fbbf24", background: "transparent" }
+                          : buttonStyle
+                      }
                       onClick={() => {
                         const finalParecer = decisao === "DILIGENCIA" && diligenciaTexto.trim()
                           ? `[DILIGÊNCIA SOLICITADA]: ${diligenciaTexto}\n\n[PARECER INTERNO]: ${parecerTexto}`
@@ -460,7 +613,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                         ? "Processando..."
                         : isDevolver
                         ? "↩️ Devolver ao Proponente para Revisão"
-                        : `Confirmar Decisão → ${targetStatus}`}
+                        : `Confirmar Decisão → ${statusLabelMap[targetStatus] || targetStatus}`}
                     </button>
                   );
                 })()}
@@ -555,10 +708,25 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
             </div>
           )}
 
-          {/* ======================= DADOS DA PROPOSTA ======================= */}
-          <div className="grid two">
-            <div className="card">
-              <h3 className="h3">Informações Gerais</h3>
+              {/* Mensagem caso não haja transições nem cancelada */}
+              {data.status !== "CANCELADA" && (!data.availableTransitions || data.availableTransitions.length === 0) && (
+                <div className="card">
+                  <h3 className="h3" style={{ marginBottom: 8 }}>Avaliação da Proposta</h3>
+                  <p className="p" style={{ color: "var(--muted)" }}>
+                    Não há ações de transição ou decisões pendentes para o seu perfil no estágio atual da proposta (Status: <strong>{statusLabelMap[data.status] || data.status}</strong>).
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* ======================= TAB: INFORMAÇÕES GERAIS ======================= */}
+          {activeTab === "geral" && (
+            <>
+              {/* ======================= DADOS DA PROPOSTA ======================= */}
+              <div className="grid two">
+                <div className="card">
+                  <h3 className="h3">Informações Gerais</h3>
               <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.6 }}>
                 <strong>Título:</strong> {data.titulo}<br/>
                 <strong>Linha Temática:</strong> {data.linhaTematica}<br/>
@@ -568,7 +736,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
               </div>
               {data.pdfPropostaUrl && (
                 <div style={{ marginTop: 12 }}>
-                  <a href={data.pdfPropostaUrl} target="_blank" rel="noopener noreferrer" className="btn secondary" style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                  <a href={data.pdfPropostaUrl} target="_blank" rel="noopener noreferrer" className="btn secondary" style={{ ...buttonStyle, display: "inline-flex" }}>
                     📄 Baixar PDF da Proposta Completa
                   </a>
                 </div>
@@ -649,17 +817,32 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
               </tbody>
             </table>
           </div>
+            </>
+          )}
 
-          {/* ======================= CRONOGRAMA ======================= */}
-          <div className="card">
-            <h3 className="h3" style={{ marginBottom: 14 }}>Marcos e Entregáveis (Cronograma)</h3>
+          {/* ======================= TAB: MARCOS ======================= */}
+          {activeTab === "marcos" && (
+            <>
+              {/* ======================= CRONOGRAMA ======================= */}
+              <div className="card">
+                <h3 className="h3" style={{ marginBottom: 14 }}>Marcos e Entregáveis (Cronograma)</h3>
             <div className="grid">
               {data.marcos.map((m: any) => (
                 <div key={m.id} style={{ padding: 14, border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden", background: "rgba(255,255,255,0.01)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <div>
                       <strong style={{ fontSize: 15 }}>Mês {m.mes}</strong>
-                      <span className="badge" style={{ marginLeft: 10 }}>{m.status}</span>
+                      <span 
+                        className="badge" 
+                        style={{ 
+                          marginLeft: 10, 
+                          borderColor: marcoStatusColorMap[m.status] || "var(--border)", 
+                          color: marcoStatusColorMap[m.status] || "var(--text)", 
+                          backgroundColor: "rgba(0,0,0,0.15)" 
+                        }}
+                      >
+                        {marcoStatusIconMap[m.status] || ""} {marcoStatusLabelMap[m.status] || m.status}
+                      </span>
                       {m.status === "VALIDADO" && (
                         <span className="badge" style={{ marginLeft: 8, borderColor: "var(--accent)", color: "var(--accent)" }}>
                           Nota: {m.nota ?? 10} (Mult: {((m.nota ?? 10) / 10).toFixed(2)})
@@ -669,7 +852,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                     {m.status === "SUBMETIDO" ? (
                       <button
                         className="btn secondary"
-                        style={{ padding: "6px 12px", fontSize: 12 }}
+                        style={smallButtonStyle}
                         onClick={() => {
                           if (evaluatingMarcoId === m.id) {
                             setEvaluatingMarcoId(null);
@@ -686,7 +869,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                       <div style={{ display: "flex", gap: 8 }}>
                         <button
                           className="btn secondary"
-                          style={{ padding: "6px 12px", fontSize: 12 }}
+                          style={smallButtonStyle}
                           onClick={() => {
                             if (evaluatingMarcoId === m.id) {
                               setEvaluatingMarcoId(null);
@@ -701,7 +884,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                         </button>
                         <button
                           className="btn secondary"
-                          style={{ padding: "6px 12px", fontSize: 12, borderColor: "var(--bad)", color: "var(--bad)" }}
+                          style={{ ...smallButtonStyle, borderColor: "var(--bad)", color: "var(--bad)", background: "transparent" }}
                           disabled={validatingMarco}
                           onClick={() => {
                             if (confirm("Tem certeza que deseja anular esta avaliação? O marco voltará ao status 'SUBMETIDO'.")) {
@@ -757,7 +940,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                       <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
                         <button
                           className="btn"
-                          style={{ background: "var(--good)" }}
+                          style={{ ...buttonStyle, background: "var(--good)", borderColor: "transparent" }}
                           disabled={validatingMarco}
                           onClick={() => handleValidarMarco(m.id, "VALIDADO")}
                         >
@@ -765,7 +948,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                         </button>
                         <button
                           className="btn"
-                          style={{ background: "var(--warn)", color: "#fff" }}
+                          style={{ ...buttonStyle, background: "var(--warn)", color: "#fff", borderColor: "transparent" }}
                           disabled={validatingMarco || !comentarioMarco.trim()}
                           onClick={() => handleValidarMarco(m.id, "AJUSTE_SOLICITADO")}
                         >
@@ -773,7 +956,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                         </button>
                         <button
                           className="btn"
-                          style={{ background: "var(--bad)" }}
+                          style={{ ...buttonStyle, background: "var(--bad)", borderColor: "transparent" }}
                           disabled={validatingMarco || !comentarioMarco.trim()}
                           onClick={() => handleValidarMarco(m.id, "REJEITADO")}
                         >
@@ -805,8 +988,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                               <button
                                 className="btn secondary"
                                 style={{
-                                  padding: "6px 12px",
-                                  fontSize: 12,
+                                  ...smallButtonStyle,
                                   borderColor: ev.publica ? "var(--good)" : "var(--border)",
                                   background: ev.publica ? "rgba(34, 197, 94, 0.15)" : "transparent",
                                   color: ev.publica ? "var(--good)" : "var(--text)"
@@ -822,24 +1004,153 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                       </div>
                     </div>
                   )}
+
+                  {/* Histórico / Linha do tempo de atividades do marco */}
+                  {m.historico && m.historico.length > 0 && (
+                    <div style={{ marginTop: 16, borderTop: "1px solid var(--border)", paddingTop: 14 }}>
+                      <strong style={{ fontSize: 13, color: "var(--muted)", display: "block", marginBottom: 8 }}>📜 Histórico de Avaliação do Marco:</strong>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 12, paddingLeft: 8, borderLeft: "2px solid rgba(255, 255, 255, 0.08)" }}>
+                        {m.historico.map((h: any) => {
+                          const dataOcorrencia = new Date(h.createdAt).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+                          const badgeColor = h.acao === "VALIDACAO" ? "var(--good)" : 
+                                             h.acao === "REJEICAO" ? "var(--bad)" : 
+                                             h.acao === "SOLICITACAO_AJUSTE" ? "var(--warn)" : "var(--accent)";
+                          
+                          const isEditing = editingMarcoLogId === h.id;
+
+                          return (
+                            <div key={h.id} style={{ fontSize: 12, lineHeight: 1.4 }}>
+                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                                  <span style={{ color: "var(--muted)", fontWeight: "bold" }}>{dataOcorrencia}</span>
+                                  <span style={{ color: "var(--text)" }}>—</span>
+                                  <span className="badge" style={{ fontSize: 10, padding: "2px 6px", borderColor: badgeColor, color: badgeColor, backgroundColor: "rgba(0,0,0,0.1)" }}>
+                                    {marcoAcaoLabelMap[h.acao] || h.acao}
+                                  </span>
+                                  <span style={{ color: "var(--text)", fontWeight: 500 }}>por {h.autorNome}</span>
+                                </div>
+                                
+                                {!isEditing && ["VALIDACAO", "SOLICITACAO_AJUSTE", "REJEICAO", "ANULACAO"].includes(h.acao) && (
+                                  <div style={{ display: "flex", gap: 6 }}>
+                                    <button
+                                      className="btn secondary"
+                                      style={smallButtonStyle}
+                                      onClick={() => {
+                                        setEditingMarcoLogId(h.id);
+                                        setEditingMarcoLogText(h.comentario || "");
+                                        setEditingMarcoLogNota(h.nota !== null ? String(h.nota) : "");
+                                      }}
+                                    >
+                                      ✏️ Editar
+                                    </button>
+                                    <button
+                                      className="btn secondary"
+                                      style={{ ...smallButtonStyle, color: "var(--bad)", borderColor: "rgba(239, 68, 68, 0.4)", background: "rgba(239, 68, 68, 0.05)" }}
+                                      onClick={() => handleDeleteMarcoLog(h.id)}
+                                    >
+                                      🗑️ Excluir
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+
+                              {isEditing ? (
+                                <div className="card" style={{ padding: 12, marginTop: 8, background: "rgba(0,0,0,0.2)", borderColor: "var(--accent)" }}>
+                                  <strong style={{ fontSize: 12, display: "block", marginBottom: 8 }}>Editar Registro de Avaliação</strong>
+                                  
+                                  {h.nota !== null && (
+                                    <div className="row" style={{ marginBottom: 10 }}>
+                                      <div className="label" style={{ fontSize: 11 }}>Nota da Entrega (0 a 10)</div>
+                                      <input
+                                        type="number"
+                                        className="input"
+                                        min="0"
+                                        max="10"
+                                        step="0.1"
+                                        style={{ padding: "6px 10px", fontSize: 12 }}
+                                        value={editingMarcoLogNota}
+                                        onChange={(e) => setEditingMarcoLogNota(e.target.value)}
+                                      />
+                                    </div>
+                                  )}
+
+                                  <div className="row" style={{ marginBottom: 10 }}>
+                                    <div className="label" style={{ fontSize: 11 }}>Comentário / Feedback</div>
+                                    <textarea
+                                      className="textarea"
+                                      rows={3}
+                                      style={{ padding: "8px", fontSize: 12 }}
+                                      value={editingMarcoLogText}
+                                      onChange={(e) => setEditingMarcoLogText(e.target.value)}
+                                    />
+                                  </div>
+
+                                  <div style={{ display: "flex", gap: 8 }}>
+                                    <button
+                                      className="btn"
+                                      style={{ ...smallButtonStyle, background: "var(--good)", borderColor: "transparent" }}
+                                      disabled={isSavingMarcoLog}
+                                      onClick={() => handleEditMarcoLog(h.id)}
+                                    >
+                                      {isSavingMarcoLog ? "Salvando..." : "💾 Salvar"}
+                                    </button>
+                                    <button
+                                      className="btn secondary"
+                                      style={smallButtonStyle}
+                                      disabled={isSavingMarcoLog}
+                                      onClick={() => {
+                                        setEditingMarcoLogId(null);
+                                        setEditingMarcoLogText("");
+                                        setEditingMarcoLogNota("");
+                                      }}
+                                    >
+                                      Cancelar
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <>
+                                  {h.nota !== null && (
+                                    <div style={{ marginTop: 2, fontWeight: "bold", color: "var(--accent)" }}>
+                                      Nota atribuída: {h.nota}
+                                    </div>
+                                  )}
+                                  {h.comentario && (
+                                    <div style={{ marginTop: 4, color: "var(--muted)", fontStyle: "italic", background: "rgba(255,255,255,0.01)", padding: "6px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.03)" }}>
+                                      &ldquo;{h.comentario}&rdquo;
+                                    </div>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           </div>
+            </>
+          )}
 
-          {/* ======================= HISTÓRICO DE PARECERES E AUDITORIA ======================= */}
-          <div className="card">
-            <h3 className="h3" style={{ marginBottom: 14 }}>Histórico e Pareceres</h3>
+          {/* ======================= TAB: HISTÓRICO ======================= */}
+          {activeTab === "historico" && (
+            <>
+              {/* ======================= HISTÓRICO DE PARECERES E AUDITORIA ======================= */}
+              <div className="card">
+                <h3 className="h3" style={{ marginBottom: 14 }}>Histórico e Pareceres</h3>
             {data.avaliacoes?.length > 0 && (
               <div style={{ marginBottom: 20 }}>
                 <h4 style={{ fontSize: 13, marginBottom: 10, color: "var(--muted)" }}>Pareceres Técnicos</h4>
                 {data.avaliacoes.map((av: any, i: number) => (
                   <div key={av.id} style={{ padding: 10, background: "rgba(255,255,255,0.02)", borderRadius: 6, marginBottom: 10, fontSize: 13, overflow: "hidden" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-                      <strong>{av.avaliador?.nome || "Avaliador Desconhecido"} <span className="badge">{av.etapa}</span></strong>
+                      <strong>{av.avaliador?.nome || "Avaliador Desconhecido"} <span className="badge">{statusLabelMap[av.etapa] || av.etapa}</span></strong>
                       <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                         <span style={{ color: "var(--muted)" }}>{new Date(av.createdAt).toLocaleString("pt-BR")}</span>
-                        <button className="btn secondary" style={{ padding: "2px 8px", fontSize: 11 }} onClick={() => {
+                        <button className="btn secondary" style={smallButtonStyle} onClick={() => {
                           setEditingParecerId(av.id);
                           setEditingParecerText(av.parecer);
                         }}>Editar</button>
@@ -849,10 +1160,10 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                       <div style={{ marginTop: 10 }}>
                         <textarea className="textarea" value={editingParecerText} onChange={e => setEditingParecerText(e.target.value)} rows={5} />
                         <div style={{ display: "flex", gap: 10, marginTop: 5 }}>
-                          <button className="btn" onClick={() => handleEditParecer(av.id)} disabled={isSubmitting}>
+                          <button className="btn" style={smallButtonStyle} onClick={() => handleEditParecer(av.id)} disabled={isSubmitting}>
                             {isSubmitting ? "Salvando..." : "Salvar Alteração"}
                           </button>
-                          <button className="btn secondary" onClick={() => setEditingParecerId(null)}>Cancelar</button>
+                          <button className="btn secondary" style={smallButtonStyle} onClick={() => setEditingParecerId(null)}>Cancelar</button>
                         </div>
                       </div>
                     ) : (
@@ -873,11 +1184,13 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                 <div key={i} style={{ borderBottom: "1px solid var(--border)", padding: "5px 0", wordBreak: "break-word" }}>
                   <span style={{ color: "var(--muted)" }}>{new Date(log.createdAt).toLocaleString("pt-BR")}</span>{" "}
                   <strong>{log.action}</strong>: 
-                  ({log.beforeJson?.status} → {log.afterJson?.status})
+                  ({statusLabelMap[log.beforeJson?.status] || log.beforeJson?.status} → {statusLabelMap[log.afterJson?.status] || log.afterJson?.status})
                 </div>
               ))}
             </div>
           </div>
+            </>
+          )}
 
         </div>
       </div>
@@ -900,7 +1213,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
             PROTOCOLO: {data.id.split("-")[0].toUpperCase()}
           </span>
           <span className="pr-status-badge" style={{ backgroundColor: statusColorsPrint[data.status] || "#999" }}>
-            {data.status}
+            {statusLabelMap[data.status] || data.status}
           </span>
         </div>
 
@@ -988,7 +1301,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
             </div>
             <div className="pr-info-item">
               <span className="pr-info-label">Status Atual</span>
-              <span className="pr-info-value">{data.status}</span>
+              <span className="pr-info-value">{statusLabelMap[data.status] || data.status}</span>
             </div>
             <div className="pr-info-item">
               <span className="pr-info-label">Marcos Definidos</span>

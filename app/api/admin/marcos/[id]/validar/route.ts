@@ -26,11 +26,33 @@ export async function POST(request: Request, { params }: { params: { id: string 
 
     const marco = await prisma.marco.findUnique({
       where: { id: params.id },
-      include: { proposta: { select: { id: true, status: true } } },
+      include: { 
+        proposta: { 
+          select: { 
+            id: true, 
+            status: true,
+            edital: {
+              select: {
+                config: {
+                  select: {
+                    ignorarPrazosMarcos: true
+                  }
+                }
+              }
+            }
+          } 
+        } 
+      },
     });
 
     if (!marco) {
       return NextResponse.json({ message: "Marco não encontrado" }, { status: 404 });
+    }
+
+    const ignorarPrazos = marco.proposta.edital.config?.ignorarPrazosMarcos ?? false;
+    const currentDay = new Date().getDate();
+    if (currentDay > 20 && !ignorarPrazos) {
+      return NextResponse.json({ message: "O período de avaliação de marcos expirou (limite até dia 20)." }, { status: 400 });
     }
 
     if (marco.status === "PENDENTE") {
@@ -45,6 +67,23 @@ export async function POST(request: Request, { params }: { params: { id: string 
           comentarioCoordenacao: novoStatus === "SUBMETIDO" ? null : (comentario || null),
           validadoEm: novoStatus === "VALIDADO" ? new Date() : null,
           nota: typeof nota === "number" ? nota : undefined,
+        },
+      });
+
+      const historicoAcao = novoStatus === "SUBMETIDO" ? "ANULACAO" :
+                            novoStatus === "VALIDADO" ? "VALIDACAO" :
+                            novoStatus === "AJUSTE_SOLICITADO" ? "SOLICITACAO_AJUSTE" : "REJEICAO";
+
+      await tx.marcoHistorico.create({
+        data: {
+          marcoId: params.id,
+          autorId: session.userId,
+          autorNome: "Coordenação",
+          acao: historicoAcao,
+          statusAnterior: marco.status,
+          statusNovo: novoStatus,
+          nota: typeof nota === "number" ? nota : undefined,
+          comentario: novoStatus === "SUBMETIDO" ? "Avaliação anulada pela coordenação." : (comentario || null),
         },
       });
 

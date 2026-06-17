@@ -26,6 +26,7 @@ export default function EditalFormPage({ params }: { params: { id: string } }) {
       linhasTematicas: "Educação Digital, Saúde, Governo Digital", // CSV temporarily
       tetoMensal: 600,
       duracaoMaxMeses: 12,
+      ignorarPrazosMarcos: false,
       pesosMatrizJson: DEFAULT_PESOS,
     },
   });
@@ -50,6 +51,7 @@ export default function EditalFormPage({ params }: { params: { id: string } }) {
               linhasTematicas: Array.isArray(d.config.linhasTematicas)
                 ? d.config.linhasTematicas.join(", ")
                 : "",
+              ignorarPrazosMarcos: d.config.ignorarPrazosMarcos ?? false,
               pesosMatrizJson: Array.isArray(d.config.pesosMatrizJson)
                 ? d.config.pesosMatrizJson
                 : DEFAULT_PESOS,
@@ -170,6 +172,20 @@ export default function EditalFormPage({ params }: { params: { id: string } }) {
             <div className="label">Duração Máxima (Meses)</div>
             <input className="input" type="number" min="1" max="24" value={state.config.duracaoMaxMeses} onChange={(e) => setConfig("duracaoMaxMeses", Number(e.target.value))} />
           </div>
+        </div>
+
+        <div className="row" style={{ marginTop: 14 }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+            <input 
+              type="checkbox" 
+              checked={state.config.ignorarPrazosMarcos} 
+              onChange={(e) => setConfig("ignorarPrazosMarcos", e.target.checked)} 
+              style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
+            />
+            <span className="p" style={{ margin: 0, fontWeight: "500" }}>
+              Ignorar prazos de entrega e validação de marcos (Permite envio/validação em qualquer dia do mês)
+            </span>
+          </label>
         </div>
 
         <div className="row" style={{ marginTop: 14 }}>
