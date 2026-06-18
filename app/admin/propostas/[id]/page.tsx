@@ -59,7 +59,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
   const [evaluatingMarcoId, setEvaluatingMarcoId] = useState<string | null>(null);
   const [comentarioMarco, setComentarioMarco] = useState("");
   const [notaMarco, setNotaMarco] = useState("10");
-  const [validatingMarco, setValidatingMarco] = useState(false);
+  const [validatingMarco, setValidatingMarco] = useState<string | null>(null);
   const [togglingEvidenciaId, setTogglingEvidenciaId] = useState<string | null>(null);
 
   const [editingMarcoLogId, setEditingMarcoLogId] = useState<string | null>(null);
@@ -141,7 +141,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
   }, [params.id]);
 
   async function handleValidarMarco(marcoId: string, status: "SUBMETIDO" | "VALIDADO" | "AJUSTE_SOLICITADO" | "REJEITADO") {
-    setValidatingMarco(true);
+    setValidatingMarco(status);
     try {
       const parsedNota = status === "VALIDADO" ? Number(notaMarco) : undefined;
       const res = await fetch(`/api/admin/marcos/${marcoId}/validar`, {
@@ -165,7 +165,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
     } catch {
       alert("Falha ao enviar decisão do marco.");
     } finally {
-      setValidatingMarco(false);
+      setValidatingMarco(null);
     }
   }
 
@@ -953,14 +953,14 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                         <button
                           className="btn secondary"
                           style={{ ...smallButtonStyle, borderColor: "var(--bad)", color: "var(--bad)", background: "transparent" }}
-                          disabled={validatingMarco}
+                          disabled={validatingMarco !== null}
                           onClick={() => {
                             if (confirm("Tem certeza que deseja anular esta avaliação? O marco voltará ao status 'SUBMETIDO'.")) {
                               handleValidarMarco(m.id, "SUBMETIDO");
                             }
                           }}
                         >
-                          Anular Avaliação
+                          {validatingMarco === "SUBMETIDO" ? "Anulando..." : "Anular Avaliação"}
                         </button>
                       </div>
                     )}
@@ -1009,26 +1009,26 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                         <button
                           className="btn"
                           style={{ ...buttonStyle, background: "var(--good)", borderColor: "transparent" }}
-                          disabled={validatingMarco}
+                          disabled={validatingMarco !== null}
                           onClick={() => handleValidarMarco(m.id, "VALIDADO")}
                         >
-                          {validatingMarco ? "Processando..." : "Aprovar"}
+                          {validatingMarco === "VALIDADO" ? "Aprovando..." : "Aprovar"}
                         </button>
                         <button
                           className="btn"
                           style={{ ...buttonStyle, background: "var(--warn)", color: "#fff", borderColor: "transparent" }}
-                          disabled={validatingMarco || !comentarioMarco.trim()}
+                          disabled={validatingMarco !== null || !comentarioMarco.trim()}
                           onClick={() => handleValidarMarco(m.id, "AJUSTE_SOLICITADO")}
                         >
-                          {validatingMarco ? "Processando..." : "Solicitar Ajustes"}
+                          {validatingMarco === "AJUSTE_SOLICITADO" ? "Solicitando..." : "Solicitar Ajustes"}
                         </button>
                         <button
                           className="btn"
                           style={{ ...buttonStyle, background: "var(--bad)", borderColor: "transparent" }}
-                          disabled={validatingMarco || !comentarioMarco.trim()}
+                          disabled={validatingMarco !== null || !comentarioMarco.trim()}
                           onClick={() => handleValidarMarco(m.id, "REJEITADO")}
                         >
-                          {validatingMarco ? "Processando..." : "Rejeitar"}
+                          {validatingMarco === "REJEITADO" ? "Rejeitando..." : "Rejeitar"}
                         </button>
                       </div>
                     </div>

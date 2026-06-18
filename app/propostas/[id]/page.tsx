@@ -6,6 +6,8 @@ import {
   statusLabelMap,
   marcoStatusLabelMap,
   marcoAcaoLabelMap,
+  marcoStatusColors as marcoStatusColorMap,
+  statusColors,
 } from "@/constants/status";
 
 const buttonStyle: React.CSSProperties = {
@@ -67,6 +69,7 @@ export default function PropostaMarcosPage({ params }: { params: { id: string } 
   const [evidDesc, setEvidDesc] = useState("");
   const [evidPublica, setEvidPublica] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [expandedLogs, setExpandedLogs] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     fetchData();
@@ -170,7 +173,17 @@ export default function PropostaMarcosPage({ params }: { params: { id: string } 
         </div>
         
         {proposta?.status && (
-          <span className="badge" style={{ padding: "6px 12px", fontSize: 13, fontWeight: "bold", backgroundColor: "var(--accent)", color: "#fff" }}>
+          <span 
+            className="badge" 
+            style={{ 
+              padding: "6px 12px", 
+              fontSize: 13, 
+              fontWeight: "bold", 
+              borderColor: statusColors[proposta.status] || "var(--border)", 
+              color: statusColors[proposta.status] || "#fff",
+              backgroundColor: "rgba(0,0,0,0.15)"
+            }}
+          >
             {statusLabelMap[proposta.status] || proposta.status}
           </span>
         )}
@@ -205,170 +218,176 @@ export default function PropostaMarcosPage({ params }: { params: { id: string } 
         </div>
       </div>
 
-      {marcos.map((m) => (
-        <div className="card" key={m.id} style={{ padding: 14 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
-              <strong style={{ fontSize: 15 }}>Mês {m.mes}</strong>
-              <span className="badge" style={{ marginLeft: 10 }}>{marcoStatusLabelMap[m.status] || m.status}</span>
-              {m.status === "VALIDADO" && m.nota !== null && m.nota !== undefined && (
+      <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+        {marcos.map((m) => (
+          <div key={m.id} style={{ padding: "20px", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", overflow: "hidden", background: "rgba(255,255,255,0.02)", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(255,255,255,0.05)", paddingBottom: "12px", marginBottom: "14px" }}>
+              <div>
+                <strong style={{ fontSize: 16 }}>Mês {m.mes}</strong>
                 <span 
                   className="badge" 
-                  style={{ marginLeft: 8, borderColor: "var(--accent)", color: "var(--accent)", cursor: "help" }}
-                  title="A nota atribuída funciona como multiplicador do valor da bolsa para o pagamento deste mês (ex: Nota 10 = 100% da bolsa; Nota 8.5 = 85%)."
+                  style={{ 
+                    marginLeft: 10, 
+                    borderColor: marcoStatusColorMap[m.status] || "var(--border)", 
+                    color: marcoStatusColorMap[m.status] || "var(--text)", 
+                    backgroundColor: "rgba(0,0,0,0.15)" 
+                  }}
                 >
-                  Nota: {m.nota} (Mult: {(m.nota / 10).toFixed(2)})
+                  {marcoStatusLabelMap[m.status] || m.status}
                 </span>
+                {m.status === "VALIDADO" && m.nota !== null && m.nota !== undefined && (
+                  <span 
+                    className="badge" 
+                    style={{ marginLeft: 8, borderColor: "var(--accent)", color: "var(--accent)", cursor: "help" }}
+                    title="A nota atribuída funciona como multiplicador do valor da bolsa para o pagamento deste mês (ex: Nota 10 = 100% da bolsa; Nota 8.5 = 85%)."
+                  >
+                    Nota: {m.nota} (Mult: {(m.nota / 10).toFixed(2)})
+                  </span>
+                )}
+              </div>
+              {["PENDENTE", "AJUSTE_SOLICITADO"].includes(m.status) && (
+                <button
+                  className="btn secondary"
+                  disabled={
+                    (m.status === "PENDENTE" && isInitialClosed) ||
+                    (m.status === "AJUSTE_SOLICITADO" && isSubmissionClosed)
+                  }
+                  style={{
+                    ...buttonStyle,
+                    opacity: ((m.status === "PENDENTE" && isInitialClosed) || (m.status === "AJUSTE_SOLICITADO" && isSubmissionClosed)) ? 0.5 : 1
+                  }}
+                  onClick={() => {
+                    if (activeMarcoId === m.id) {
+                      handleCancelForm();
+                    } else {
+                      setActiveMarcoId(m.id);
+                    }
+                  }}
+                >
+                  {activeMarcoId === m.id ? "Cancelar" : 
+                   (m.status === "PENDENTE" && isInitialClosed) ? "Envio Inicial Fechado" :
+                   (m.status === "AJUSTE_SOLICITADO" && isSubmissionClosed) ? "Ajuste Fechado" :
+                   "Submeter Evidência"}
+                </button>
               )}
             </div>
-            {["PENDENTE", "AJUSTE_SOLICITADO"].includes(m.status) && (
-              <button
-                className="btn secondary"
-                disabled={
-                  (m.status === "PENDENTE" && isInitialClosed) ||
-                  (m.status === "AJUSTE_SOLICITADO" && isSubmissionClosed)
-                }
-                style={{
-                  ...buttonStyle,
-                  opacity: ((m.status === "PENDENTE" && isInitialClosed) || (m.status === "AJUSTE_SOLICITADO" && isSubmissionClosed)) ? 0.5 : 1
-                }}
-                onClick={() => {
-                  if (activeMarcoId === m.id) {
-                    handleCancelForm();
-                  } else {
-                    setActiveMarcoId(m.id);
-                  }
-                }}
-              >
-                {activeMarcoId === m.id ? "Cancelar" : 
-                 (m.status === "PENDENTE" && isInitialClosed) ? "Envio Inicial Fechado" :
-                 (m.status === "AJUSTE_SOLICITADO" && isSubmissionClosed) ? "Ajuste Fechado" :
-                 "Submeter Evidência"}
-              </button>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: 13, lineHeight: 1.5, marginBottom: "16px" }}>
+              <div><strong style={{ color: "var(--muted)" }}>Entregável:</strong> <span style={{ color: "var(--text)" }}>{m.entregavel}</span></div>
+              <div><strong style={{ color: "var(--muted)" }}>Evidência Esperada:</strong> <span style={{ color: "var(--text)" }}>{m.evidenciaEsperada}</span></div>
+              <div><strong style={{ color: "var(--muted)" }}>Critério:</strong> <span style={{ color: "var(--text)" }}>{m.criterioAceitacao}</span></div>
+            </div>
+
+            {m.comentarioCoordenacao && (
+              <div style={{ marginTop: "16px", marginBottom: "16px", padding: "12px", background: "rgba(255,200,0,0.04)", borderRadius: "8px", borderLeft: "3px solid var(--warn)", fontSize: "13px", lineHeight: "1.5" }}>
+                <strong style={{ color: "var(--warn)", display: "block", marginBottom: "4px" }}>Feedback da Coordenação:</strong>
+                <p className="p" style={{ margin: 0 }}>{formatStatusText(m.comentarioCoordenacao)}</p>
+              </div>
             )}
-          </div>
 
-          <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.6 }}>
-            <strong>Entregável:</strong> {m.entregavel}<br />
-            <strong>Evidência Esperada:</strong> {m.evidenciaEsperada}<br />
-            <strong>Critério de Aceitação:</strong> {m.criterioAceitacao}
-          </div>
-
-          {m.comentarioCoordenacao && (
-            <div style={{ marginTop: 10, padding: 10, background: "rgba(255,200,0,0.05)", borderRadius: 6, borderLeft: "3px solid var(--warn)" }}>
-              <strong style={{ fontSize: 12, color: "var(--warn)" }}>Feedback da Coordenação:</strong>
-              <p className="p" style={{ margin: "5px 0 0" }}>{formatStatusText(m.comentarioCoordenacao)}</p>
-            </div>
-          )}
-
-          {m.status === "AJUSTE_SOLICITADO" && (
-            <div style={{ marginTop: 10, padding: 10, background: "rgba(245,158,11,0.08)", borderRadius: 8, border: "1px solid rgba(245,158,11,0.3)", fontSize: 13, color: "var(--warn)" }}>
-              <strong>Ajustes solicitados pela coordenação:</strong> Você tem apenas <strong>1 chance para readequar as atividades e reenviar</strong> a entrega. A nota atribuída após esta reavaliação será a nota final e definitiva deste marco.
-            </div>
-          )}
+            {m.status === "AJUSTE_SOLICITADO" && (
+              <div style={{ marginTop: "16px", marginBottom: "16px", padding: "12px", background: "rgba(245,158,11,0.06)", borderRadius: "8px", borderLeft: "3px solid var(--warn)", fontSize: "13px", lineHeight: "1.5" }}>
+                <strong>Ajustes solicitados pela coordenação:</strong> Você tem apenas <strong>1 chance para readequar as atividades e reenviar</strong> a entrega. A nota atribuída após esta reavaliação será a nota final e definitiva deste marco.
+              </div>
+            )}
 
           {/* Evidências já submetidas */}
           {m.evidencias?.length > 0 && (
             <div style={{ marginTop: 14 }}>
-              <strong style={{ fontSize: 12, color: "var(--muted)" }}>Evidências Enviadas:</strong>
-              {m.evidencias.map((ev: any) => {
-                const typeIcon = ev.tipo === "LINK" ? "🔗" : ev.tipo === "ARQUIVO" ? "📁" : "📝";
-                const dateStr = new Date(ev.createdAt).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
-                return (
-                  <div 
-                    key={ev.id} 
-                    style={{ 
-                      padding: "12px 16px", 
-                      marginTop: 8, 
-                      background: "rgba(255,255,255,0.03)", 
-                      border: "1px solid rgba(255,255,255,0.08)", 
-                      borderRadius: 12, 
-                      fontSize: 13, 
-                      display: "flex", 
-                      justifyContent: "space-between", 
-                      alignItems: "center",
-                      gap: 16,
-                      flexWrap: "wrap",
-                      boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
-                      transition: "all 0.2s ease"
-                    }}
-                  >
-                    <div style={{ flex: 1, minWidth: 250 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                        <span className="badge" style={{ backgroundColor: "rgba(255,255,255,0.08)", borderColor: "rgba(255,255,255,0.15)", color: "var(--text)" }}>
-                          {typeIcon} {ev.tipo}
-                        </span>
-                        {ev.publica ? (
-                          <span className="badge" style={{ borderColor: "var(--good)", backgroundColor: "rgba(34,197,94,0.1)", color: "var(--good)" }}>
-                            🌐 Pública
+              <strong style={{ fontSize: 12, color: "var(--muted)", display: "block", marginBottom: 10 }}>Evidências Enviadas:</strong>
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                {m.evidencias.map((ev: any) => {
+                  const dateStr = new Date(ev.createdAt).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+                  return (
+                    <div 
+                      key={ev.id} 
+                      style={{ 
+                        padding: "14px", 
+                        background: "rgba(255,255,255,0.02)", 
+                        borderRadius: "8px", 
+                        fontSize: "13px", 
+                        display: "flex", 
+                        flexDirection: "column", 
+                        gap: "10px",
+                        border: "1px solid rgba(255,255,255,0.05)"
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px", borderBottom: "1px solid rgba(255,255,255,0.05)", paddingBottom: "8px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          <span className="badge" style={{ background: "rgba(255,255,255,0.1)", borderColor: "var(--accent)", color: "var(--accent)" }}>
+                            {ev.tipo}
                           </span>
-                        ) : (
-                          <span className="badge" style={{ borderColor: "var(--muted)", backgroundColor: "rgba(255,255,255,0.02)", color: "var(--muted)" }}>
-                            🔒 Privada
-                          </span>
+                          {ev.publica ? (
+                            <span className="badge" style={{ borderColor: "var(--good)", backgroundColor: "rgba(34,197,94,0.1)", color: "var(--good)" }}>
+                              Pública
+                            </span>
+                          ) : (
+                            <span className="badge" style={{ borderColor: "var(--muted)", backgroundColor: "rgba(255,255,255,0.02)", color: "var(--muted)" }}>
+                              Privada
+                            </span>
+                          )}
+                          {ev.url && (
+                            <a 
+                              href={ev.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              style={{ 
+                                color: "var(--accent)", 
+                                fontWeight: "bold", 
+                                textDecoration: "underline",
+                                fontSize: "12px",
+                                marginLeft: "6px"
+                              }}
+                            >
+                              Acessar Prova
+                            </a>
+                          )}
+                        </div>
+                        
+                        {m.status !== "VALIDADO" && (
+                          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                            <button
+                              className="btn"
+                              disabled={isSubmissionClosed}
+                              style={{ 
+                                ...smallButtonStyle,
+                                background: "var(--bg)",
+                                border: "1px solid var(--border)",
+                                color: "var(--text)",
+                                opacity: isSubmissionClosed ? 0.5 : 1
+                              }}
+                              onClick={() => handleStartEdit(m.id, ev)}
+                            >
+                              Editar
+                            </button>
+                            <button
+                              className="btn secondary"
+                              disabled={isSubmissionClosed}
+                              style={{ 
+                                ...smallButtonStyle,
+                                color: "var(--bad)", 
+                                borderColor: "rgba(239, 68, 68, 0.4)",
+                                background: "rgba(239, 68, 68, 0.05)",
+                                opacity: isSubmissionClosed ? 0.5 : 1
+                              }}
+                              onClick={() => handleDeleteEvidencia(ev.id)}
+                            >
+                              Excluir
+                            </button>
+                          </div>
                         )}
                       </div>
-                      <div style={{ fontWeight: 500, lineHeight: 1.5, color: "var(--text)", wordBreak: "break-word" }}>
+
+                      <div style={{ fontWeight: 500, lineHeight: "1.5", color: "var(--text)", wordBreak: "break-word" }}>
                         {ev.descricao}
                       </div>
-                      <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 6 }}>
+                      <div style={{ fontSize: "11px", color: "var(--muted)" }}>
                         Enviado em: {dateStr}
                       </div>
                     </div>
-                    
-                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                      {ev.url && (
-                        <a 
-                          href={ev.url} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="btn secondary"
-                          style={{ 
-                            ...smallButtonStyle,
-                            color: "#c4b5fd", 
-                            borderColor: "rgba(124,92,255,0.4)", 
-                            background: "rgba(124,92,255,0.08)" 
-                          }}
-                        >
-                          🔗 Acessar Prova
-                        </a>
-                      )}
-                      {m.status !== "VALIDADO" && (
-                        <>
-                          <button
-                            className="btn"
-                            disabled={isSubmissionClosed}
-                            style={{ 
-                              ...smallButtonStyle,
-                              background: "var(--bg)",
-                              border: "1px solid var(--border)",
-                              color: "var(--text)",
-                              opacity: isSubmissionClosed ? 0.5 : 1
-                            }}
-                            onClick={() => handleStartEdit(m.id, ev)}
-                          >
-                            ✏️ Editar
-                          </button>
-                          <button
-                            className="btn secondary"
-                            disabled={isSubmissionClosed}
-                            style={{ 
-                              ...smallButtonStyle,
-                              color: "var(--bad)", 
-                              borderColor: "rgba(239, 68, 68, 0.4)",
-                              background: "rgba(239, 68, 68, 0.05)",
-                              opacity: isSubmissionClosed ? 0.5 : 1
-                            }}
-                            onClick={() => handleDeleteEvidencia(ev.id)}
-                          >
-                            🗑️ Excluir
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           )}
 
@@ -399,7 +418,30 @@ export default function PropostaMarcosPage({ params }: { params: { id: string } 
                       )}
                       {h.comentario && (
                         <div style={{ marginTop: 4, color: "var(--muted)", fontStyle: "italic", background: "rgba(255,255,255,0.01)", padding: "6px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.03)" }}>
-                          &ldquo;{formatStatusText(h.comentario)}&rdquo;
+                          &ldquo;
+                          {h.comentario.length > 150 && !expandedLogs[h.id]
+                            ? formatStatusText(h.comentario).substring(0, 150) + "..."
+                            : formatStatusText(h.comentario)}
+                          &rdquo;
+                          {h.comentario.length > 150 && (
+                            <button
+                              type="button"
+                              style={{
+                                background: "none",
+                                border: "none",
+                                color: "var(--accent)",
+                                cursor: "pointer",
+                                textDecoration: "underline",
+                                fontSize: "11px",
+                                marginLeft: "8px",
+                                padding: 0,
+                                fontWeight: "bold"
+                              }}
+                              onClick={() => setExpandedLogs(prev => ({ ...prev, [h.id]: !prev[h.id] }))}
+                            >
+                              {expandedLogs[h.id] ? "Esconder" : "Expandir"}
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>
@@ -451,6 +493,7 @@ export default function PropostaMarcosPage({ params }: { params: { id: string } 
           )}
         </div>
       ))}
+      </div>
     </div>
   );
 }
