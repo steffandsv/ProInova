@@ -37,20 +37,20 @@ export default function PainelPage() {
 
   const isAdmin = user && ["ADMIN", "TRIAGEM", "EDUCACAO", "CMAA", "PREFEITO"].includes(user.role);
 
-  const statusConfig: Record<string, { icon: string, color: string, label: string }> = {
-    RASCUNHO: { icon: "📝", color: "var(--muted)", label: "Em rascunho" },
-    SUBMETIDA: { icon: "📥", color: "#3b82f6", label: "Aguardando feedback" },
-    EM_TRIAGEM: { icon: "🔍", color: "#8b5cf6", label: "Em triagem" },
-    PARECER_EDUCACAO: { icon: "📚", color: "#8b5cf6", label: "Parecer Educação" },
-    AVALIACAO_CMAA: { icon: "⚖️", color: "#f59e0b", label: "Avaliação CMAA" },
-    CLASSIFICADA: { icon: "🏆", color: "#10b981", label: "Classificada" },
-    HOMOLOGADA: { icon: "✅", color: "#10b981", label: "Homologada" },
-    TERMO_OUTORGA: { icon: "📄", color: "#10b981", label: "Termo de outorga" },
-    EM_EXECUCAO: { icon: "⚙️", color: "var(--good)", label: "Em execução" },
-    SUSPENSA: { icon: "⏸️", color: "var(--warn)", label: "Suspensa" },
-    EM_AJUSTE: { icon: "⚠️", color: "#f59e0b", label: "Aguardando sua revisão" },
-    CANCELADA: { icon: "❌", color: "var(--bad)", label: "Cancelada" },
-    CONCLUIDA: { icon: "🏁", color: "var(--accent)", label: "Concluída" },
+  const statusConfig: Record<string, { color: string, label: string }> = {
+    RASCUNHO: { color: "var(--muted)", label: "Em rascunho" },
+    SUBMETIDA: { color: "#3b82f6", label: "Aguardando feedback" },
+    EM_TRIAGEM: { color: "#8b5cf6", label: "Em triagem" },
+    PARECER_EDUCACAO: { color: "#8b5cf6", label: "Parecer Educação" },
+    AVALIACAO_CMAA: { color: "#f59e0b", label: "Avaliação CMAA" },
+    CLASSIFICADA: { color: "#10b981", label: "Classificada" },
+    HOMOLOGADA: { color: "#10b981", label: "Homologada" },
+    TERMO_OUTORGA: { color: "#10b981", label: "Termo de outorga" },
+    EM_EXECUCAO: { color: "var(--good)", label: "Em execução" },
+    SUSPENSA: { color: "var(--warn)", label: "Suspensa" },
+    EM_AJUSTE: { color: "#f59e0b", label: "Aguardando sua revisão" },
+    CANCELADA: { color: "var(--bad)", label: "Cancelada" },
+    CONCLUIDA: { color: "var(--accent)", label: "Concluída" },
   };
 
   return (
@@ -117,12 +117,12 @@ export default function PainelPage() {
                     <div>
                       <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
                         <span className="badge" style={{ borderColor: conf.color, backgroundColor: `${conf.color}15`, color: conf.color, fontWeight: 600 }}>
-                          {conf.icon} {conf.label}
+                          {conf.label}
                         </span>
                         <span className="badge">{p.modalidade}</span>
                         {p.status === "RASCUNHO" && p.aiAnalysisJson && (
                           <span className="badge" style={{ borderColor: "#10b981", backgroundColor: "rgba(16,185,129,0.1)", color: "#10b981", fontWeight: 600 }}>
-                            🤖 Pronta para envio
+                            Pronta para envio
                           </span>
                         )}
                       </div>

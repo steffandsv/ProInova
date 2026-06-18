@@ -73,14 +73,6 @@ export const marcoStatusColors: Record<string, string> = {
   REJEITADO: "var(--bad)",
 };
 
-export const marcoStatusIcons: Record<string, string> = {
-  PENDENTE: "⏳",
-  SUBMETIDO: "📤",
-  VALIDADO: "✅",
-  AJUSTE_SOLICITADO: "🔄",
-  REJEITADO: "❌",
-};
-
 // ─── Marco Histórico – Ação ──────────────────────────────────────────────────
 
 export const marcoAcaoLabelMap: Record<string, string> = {

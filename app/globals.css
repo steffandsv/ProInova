@@ -460,7 +460,7 @@ a:hover {
 .lei-banner {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 4px;
   padding: 10px 16px;
   border-radius: 12px;
   background: rgba(124, 92, 255, 0.1);

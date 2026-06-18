@@ -8,7 +8,6 @@ import {
   statusColorsPrint,
   marcoStatusLabelMap,
   marcoStatusColors as marcoStatusColorMap,
-  marcoStatusIcons as marcoStatusIconMap,
   marcoAcaoLabelMap,
 } from "@/constants/status";
 
@@ -67,6 +66,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
   const [editingMarcoLogText, setEditingMarcoLogText] = useState("");
   const [editingMarcoLogNota, setEditingMarcoLogNota] = useState("");
   const [isSavingMarcoLog, setIsSavingMarcoLog] = useState(false);
+  const [expandedLogs, setExpandedLogs] = useState<Record<string, boolean>>({});
 
   async function handleEditMarcoLog(logId: string) {
     setIsSavingMarcoLog(true);
@@ -318,21 +318,26 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
       <div className="screen-layout">
         <div className="grid wide-layout" style={{ gap: 14 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
-            <h1 className="h1">Protocolo {data.id.split("-")[0].toUpperCase()}</h1>
+            <div>
+              <h1 className="h1" style={{ margin: 0 }}>Protocolo {data.id.split("-")[0].toUpperCase()}</h1>
+              <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 6 }}>
+                {data.proponente.nome} — {data.proponente.cpf}
+              </div>
+            </div>
             <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
                <span className="badge" style={{ backgroundColor: statusColors[data.status] || "var(--border)", color: "#fff", padding: "6px 12px", fontSize: 13, fontWeight: "bold" }}>
-                 Status: {statusLabelMap[data.status] || data.status}
+                 {statusLabelMap[data.status] || data.status}
                </span>
-               <button className="print-btn" onClick={handlePrint} style={{ ...buttonStyle, background: "rgba(255,255,255,0.06)", border: "1px solid var(--border)", color: "var(--text)" }}>
-                 🖨️ Imprimir Relatório
-               </button>
-               <Link href="/admin/propostas" className="btn secondary" style={buttonStyle}>Voltar</Link>
+                <button className="btn secondary" onClick={handlePrint} style={buttonStyle}>
+                  Imprimir Relatório
+                </button>
+                <Link href="/admin/propostas" className="btn secondary" style={buttonStyle}>Voltar</Link>
             </div>
           </div>
 
           {/* LEI Reference */}
           <a href="/LEI.pdf" target="_blank" rel="noopener noreferrer" className="lei-banner">
-            📋 <strong>Consulte a Lei Municipal de Inovação</strong> — Referência para avaliação
+            <strong>Consulte a Lei Municipal de Inovação 📋</strong> — <p>Referência para avaliação</p>
           </a>
 
           {/* Tabs Navigation */}
@@ -364,7 +369,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                 transition: "all 0.2s ease",
               }}
             >
-              ⚖️ Avaliação da proposta
+              Avaliação da proposta
             </button>
             <button
               onClick={() => setActiveTab("geral")}
@@ -382,7 +387,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                 transition: "all 0.2s ease",
               }}
             >
-              📋 Informações gerais
+              Informações gerais
             </button>
             <button
               onClick={() => setActiveTab("marcos")}
@@ -400,7 +405,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                 transition: "all 0.2s ease",
               }}
             >
-              📅 Marcos e entregáveis
+              Marcos e entregáveis
             </button>
             <button
               onClick={() => setActiveTab("historico")}
@@ -418,7 +423,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                 transition: "all 0.2s ease",
               }}
             >
-              📜 Histórico e pareceres
+              Histórico e pareceres
             </button>
           </div>
 
@@ -487,21 +492,21 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                 <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", flexDirection: "column" }}>
                   <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: "var(--card-bg)", padding: "10px 14px", borderRadius: 8, border: "1px solid " + (decisao === "APROVADA" ? "#10b981" : "var(--border)") }}>
                     <input type="radio" name="decisao" value="APROVADA" checked={decisao === "APROVADA"} onChange={() => setDecisao("APROVADA")} style={{ width: 18, height: 18 }} />
-                    <span style={{ fontWeight: 600 }}>✅ APROVADA</span> <span style={{ color: "var(--muted)", fontSize: 13 }}>— Avançar para próxima etapa</span>
+                    <span style={{ fontWeight: 600 }}>APROVADA</span> <span style={{ color: "var(--muted)", fontSize: 13 }}>— Avançar para próxima etapa</span>
                   </label>
                   <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: "var(--card-bg)", padding: "10px 14px", borderRadius: 8, border: "1px solid " + (decisao === "REPROVADA" ? "#ef4444" : "var(--border)") }}>
                     <input type="radio" name="decisao" value="REPROVADA" checked={decisao === "REPROVADA"} onChange={() => setDecisao("REPROVADA")} style={{ width: 18, height: 18 }} />
-                    <span style={{ fontWeight: 600 }}>❌ REPROVADA</span> <span style={{ color: "var(--muted)", fontSize: 13 }}>— Encerrar / cancelar proposta</span>
+                    <span style={{ fontWeight: 600 }}>REPROVADA</span> <span style={{ color: "var(--muted)", fontSize: 13 }}>— Encerrar / cancelar proposta</span>
                   </label>
                   {data.availableTransitions.some((t: any) => t.to === "EM_AJUSTE") && (
                     <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: "var(--card-bg)", padding: "10px 14px", borderRadius: 8, border: "1px solid " + (decisao === "DEVOLVER" ? "#f59e0b" : "var(--border)") }}>
                       <input type="radio" name="decisao" value="DEVOLVER" checked={decisao === "DEVOLVER"} onChange={() => setDecisao("DEVOLVER")} style={{ width: 18, height: 18 }} />
-                      <span style={{ fontWeight: 600 }}>↩️ DEVOLVER AO PROPONENTE</span> <span style={{ color: "var(--muted)", fontSize: 13 }}>— Retornar para revisão completa (meses, entregáveis, equipe, etc.)</span>
+                      <span style={{ fontWeight: 600 }}>DEVOLVER AO PROPONENTE</span> <span style={{ color: "var(--muted)", fontSize: 13 }}>— Retornar para revisão completa (meses, entregáveis, equipe, etc.)</span>
                     </label>
                   )}
                   <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: "var(--card-bg)", padding: "10px 14px", borderRadius: 8, border: "1px solid " + (decisao === "DILIGENCIA" ? "#8b5cf6" : "var(--border)") }}>
                     <input type="radio" name="decisao" value="DILIGENCIA" checked={decisao === "DILIGENCIA"} onChange={() => setDecisao("DILIGENCIA")} style={{ width: 18, height: 18 }} />
-                    <span style={{ fontWeight: 600 }}>🔄 DILIGÊNCIA</span> <span style={{ color: "var(--muted)", fontSize: 13 }}>— Retroceder para etapa anterior (entre avaliadores)</span>
+                    <span style={{ fontWeight: 600 }}>DILIGÊNCIA</span> <span style={{ color: "var(--muted)", fontSize: 13 }}>— Retroceder para etapa anterior (entre avaliadores)</span>
                   </label>
                 </div>
               </div>
@@ -590,7 +595,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                   if (data.status === "HOMOLOGADA" && decisao === "APROVADA" && targetStatus === "TERMO_OUTORGA") {
                     return (
                       <Link href={`/admin/propostas/${data.id}/termo`} className="cta-btn cta-btn--primary" style={buttonStyle}>
-                        📄 Gerar Termo de Outorga
+                        Gerar Termo de Outorga
                       </Link>
                     );
                   }
@@ -735,9 +740,9 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
               <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.6 }}>
                 <strong>Título:</strong> {data.titulo}<br/>
                 <strong>Linha Temática:</strong> {data.linhaTematica}<br/>
-                <strong>Edital:</strong> {data.edital.titulo} <span className="badge">{data.edital.modalidade}</span><br/>
+                <strong>Edital:</strong> {data.edital.titulo} <span className="badge" style={{ marginLeft: 4 }}>{data.edital.modalidade}</span><br/>
                 <strong>Duração:</strong> {data.duracaoMeses} meses<br/>
-                <strong>Data Submissão:</strong> {new Date(data.createdAt).toLocaleString("pt-BR")}<br/>
+                <strong>Data Submissão:</strong> {new Date(data.createdAt).toLocaleString("pt-BR")}
               </div>
               {data.pdfPropostaUrl && (
                 <div style={{ marginTop: 12 }}>
@@ -831,12 +836,12 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
               {/* ======================= CRONOGRAMA ======================= */}
               <div className="card">
                 <h3 className="h3" style={{ marginBottom: 14 }}>Marcos e Entregáveis (Cronograma)</h3>
-            <div className="grid">
+            <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
               {data.marcos.map((m: any) => (
-                <div key={m.id} style={{ padding: 14, border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden", background: "rgba(255,255,255,0.01)" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div key={m.id} style={{ padding: "20px", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", overflow: "hidden", background: "rgba(255,255,255,0.02)", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(255,255,255,0.05)", paddingBottom: "12px", marginBottom: "14px" }}>
                     <div>
-                      <strong style={{ fontSize: 15 }}>Mês {m.mes}</strong>
+                      <strong style={{ fontSize: 16 }}>Mês {m.mes}</strong>
                       <span 
                         className="badge" 
                         style={{ 
@@ -846,7 +851,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                           backgroundColor: "rgba(0,0,0,0.15)" 
                         }}
                       >
-                        {marcoStatusIconMap[m.status] || ""} {marcoStatusLabelMap[m.status] || m.status}
+                        {marcoStatusLabelMap[m.status] || m.status}
                       </span>
                       {m.status === "VALIDADO" && m.nota !== null && m.nota !== undefined && (
                         <span className="badge" style={{ marginLeft: 8, borderColor: "var(--accent)", color: "var(--accent)" }}>
@@ -857,7 +862,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                     {m.status === "SUBMETIDO" ? (
                       <button
                         className="btn secondary"
-                        style={smallButtonStyle}
+                        style={buttonStyle}
                         onClick={() => {
                           if (evaluatingMarcoId === m.id) {
                             setEvaluatingMarcoId(null);
@@ -868,7 +873,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                           }
                         }}
                       >
-                        {evaluatingMarcoId === m.id ? "Cancelar Avaliação" : "⚖️ Avaliar Entrega"}
+                        {evaluatingMarcoId === m.id ? "Cancelar Avaliação" : "Avaliar Entrega"}
                       </button>
                     ) : m.status !== "PENDENTE" && (
                       <div style={{ display: "flex", gap: 8 }}>
@@ -902,21 +907,21 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                       </div>
                     )}
                   </div>
-                  <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.6 }}>
-                    <strong>Entregável:</strong> {m.entregavel}<br />
-                    <strong>Evidência Esperada:</strong> {m.evidenciaEsperada}<br />
-                    <strong>Critério:</strong> {m.criterioAceitacao}
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: 13, lineHeight: 1.5, marginBottom: "16px" }}>
+                    <div><strong style={{ color: "var(--muted)" }}>Entregável:</strong> <span style={{ color: "var(--text)" }}>{m.entregavel}</span></div>
+                    <div><strong style={{ color: "var(--muted)" }}>Evidência Esperada:</strong> <span style={{ color: "var(--text)" }}>{m.evidenciaEsperada}</span></div>
+                    <div><strong style={{ color: "var(--muted)" }}>Critério:</strong> <span style={{ color: "var(--text)" }}>{m.criterioAceitacao}</span></div>
                   </div>
 
                   {m.comentarioCoordenacao && (
-                    <div style={{ marginTop: 10, padding: 10, background: "rgba(255,200,0,0.05)", borderRadius: 6, borderLeft: "3px solid var(--warn)", fontSize: 13 }}>
-                      <strong>Feedback da Coordenação:</strong> {m.comentarioCoordenacao}
+                    <div style={{ marginTop: "16px", marginBottom: "16px", padding: "12px", background: "rgba(255,200,0,0.04)", borderRadius: "8px", borderLeft: "3px solid var(--warn)", fontSize: "13px", lineHeight: "1.5" }}>
+                      <strong style={{ color: "var(--warn)" }}>Feedback da Coordenação:</strong> <span style={{ color: "var(--text)" }}>{m.comentarioCoordenacao}</span>
                     </div>
                   )}
 
                   {/* Form de Avaliação do Marco */}
                   {evaluatingMarcoId === m.id && (
-                    <div className="card" style={{ padding: 14, marginTop: 14, borderColor: "var(--accent)", background: "rgba(0,0,0,0.2)" }}>
+                    <div className="card" style={{ padding: 14, marginTop: 14, marginBottom: 14, borderColor: "var(--accent)", background: "rgba(0,0,0,0.2)" }}>
                       <strong style={{ fontSize: 13 }}>Avaliar Prestação de Contas - Mês {m.mes}</strong>
                       
                       <div className="row" style={{ marginTop: 10 }}>
@@ -973,36 +978,66 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
 
                   {/* Evidências Submetidas */}
                   {m.evidencias?.length > 0 && (
-                    <div style={{ marginTop: 14, paddingTop: 10, borderTop: "1px solid var(--border)" }}>
-                      <strong style={{ fontSize: 13, color: "var(--muted)", display: "block", marginBottom: 8 }}>Evidências / Provas Submetidas:</strong>
-                      <div className="grid" style={{ gap: 8 }}>
+                    <div style={{ marginTop: "20px", paddingTop: "16px", borderTop: "1px solid var(--border)" }}>
+                      <strong style={{ fontSize: "13px", color: "var(--muted)", display: "block", marginBottom: "12px" }}>Evidências / Provas Submetidas:</strong>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                         {m.evidencias.map((ev: any) => (
-                          <div key={ev.id} style={{ padding: 10, background: "rgba(255,255,255,0.02)", borderRadius: 6, fontSize: 13, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
-                            <div style={{ flex: 1, minWidth: 200 }}>
-                              <span className="badge">{ev.tipo}</span> <span style={{ marginLeft: 6 }}>{ev.descricao}</span>
-                              {ev.url && (
-                                <a href={ev.url} target="_blank" rel="noopener noreferrer" style={{ marginLeft: 10, color: "var(--accent)", fontWeight: "bold" }}>
-                                  🔗 Abrir Prova
-                                </a>
-                              )}
-                              <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>
-                                Enviado em: {new Date(ev.createdAt).toLocaleString("pt-BR")}
+                          <div 
+                            key={ev.id} 
+                            style={{ 
+                              padding: "14px", 
+                              background: "rgba(255,255,255,0.02)", 
+                              borderRadius: "8px", 
+                              fontSize: "13px", 
+                              display: "flex", 
+                              flexDirection: "column", 
+                              gap: "10px",
+                              border: "1px solid rgba(255,255,255,0.05)"
+                            }}
+                          >
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px", borderBottom: "1px solid rgba(255,255,255,0.05)", paddingBottom: "8px" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                <span className="badge" style={{ background: "rgba(255,255,255,0.1)", borderColor: "var(--accent)", color: "var(--accent)" }}>
+                                  {ev.tipo}
+                                </span>
+                                {ev.url && (
+                                  <a 
+                                    href={ev.url} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    style={{ 
+                                      color: "var(--accent)", 
+                                      fontWeight: "bold", 
+                                      textDecoration: "underline",
+                                      fontSize: "12px",
+                                      marginLeft: "6px"
+                                    }}
+                                  >
+                                    Abrir Prova
+                                  </a>
+                                )}
+                              </div>
+                              <div>
+                                <button
+                                  className="btn secondary"
+                                  style={{
+                                    ...smallButtonStyle,
+                                    borderColor: ev.publica ? "var(--good)" : "var(--border)",
+                                    background: ev.publica ? "rgba(34, 197, 94, 0.15)" : "transparent",
+                                    color: ev.publica ? "var(--good)" : "var(--text)"
+                                  }}
+                                  disabled={togglingEvidenciaId === ev.id}
+                                  onClick={() => handleTogglePublicaEvidencia(ev.id, ev.publica)}
+                                >
+                                  {togglingEvidenciaId === ev.id ? "Aguarde..." : ev.publica ? "Publicar na transparência" : "Ocultar na transparência"}
+                                </button>
                               </div>
                             </div>
-                            <div>
-                              <button
-                                className="btn secondary"
-                                style={{
-                                  ...smallButtonStyle,
-                                  borderColor: ev.publica ? "var(--good)" : "var(--border)",
-                                  background: ev.publica ? "rgba(34, 197, 94, 0.15)" : "transparent",
-                                  color: ev.publica ? "var(--good)" : "var(--text)"
-                                }}
-                                disabled={togglingEvidenciaId === ev.id}
-                                onClick={() => handleTogglePublicaEvidencia(ev.id, ev.publica)}
-                              >
-                                {togglingEvidenciaId === ev.id ? "Aguarde..." : ev.publica ? "🌐 Pública na Transparência" : "🔒 Privada (Ocultar)"}
-                              </button>
+                            <div style={{ lineHeight: "1.5", color: "var(--text)" }}>
+                              {ev.descricao}
+                            </div>
+                            <div style={{ fontSize: "11px", color: "var(--muted)" }}>
+                              Enviado em: {new Date(ev.createdAt).toLocaleString("pt-BR")}
                             </div>
                           </div>
                         ))}
@@ -1012,9 +1047,9 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
 
                   {/* Histórico / Linha do tempo de atividades do marco */}
                   {m.historico && m.historico.length > 0 && (
-                    <div style={{ marginTop: 16, borderTop: "1px solid var(--border)", paddingTop: 14 }}>
-                      <strong style={{ fontSize: 13, color: "var(--muted)", display: "block", marginBottom: 8 }}>📜 Histórico de Avaliação do Marco:</strong>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 12, paddingLeft: 8, borderLeft: "2px solid rgba(255, 255, 255, 0.08)" }}>
+                    <div style={{ marginTop: "20px", borderTop: "1px solid var(--border)", paddingTop: "16px" }}>
+                      <strong style={{ fontSize: "13px", color: "var(--muted)", display: "block", marginBottom: "12px" }}>Histórico de Avaliação do Marco:</strong>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 14, paddingLeft: 8, borderLeft: "2px solid rgba(255, 255, 255, 0.08)" }}>
                         {m.historico.map((h: any) => {
                           const dataOcorrencia = new Date(h.createdAt).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
                           const badgeColor = h.acao === "VALIDACAO" ? "var(--good)" : 
@@ -1025,7 +1060,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
 
                           return (
                             <div key={h.id} style={{ fontSize: 12, lineHeight: 1.4 }}>
-                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 6 }}>
+                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                                   <span style={{ color: "var(--muted)", fontWeight: "bold" }}>{dataOcorrencia}</span>
                                   <span style={{ color: "var(--text)" }}>—</span>
@@ -1049,14 +1084,14 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                                         setEditingMarcoLogNota(h.nota !== null ? String(h.nota) : "");
                                       }}
                                     >
-                                      ✏️ Editar
+                                      Editar
                                     </button>
                                     <button
                                       className="btn secondary"
                                       style={{ ...smallButtonStyle, color: "var(--bad)", borderColor: "rgba(239, 68, 68, 0.4)", background: "rgba(239, 68, 68, 0.05)" }}
                                       onClick={() => handleDeleteMarcoLog(h.id, USER_ACTIONS.includes(h.acao))}
                                     >
-                                      🗑️ Excluir
+                                      Excluir
                                     </button>
                                   </div>
                                 )}
@@ -1129,7 +1164,30 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                                   )}
                                   {h.comentario && (
                                     <div style={{ marginTop: 4, color: "var(--muted)", fontStyle: "italic", background: "rgba(255,255,255,0.01)", padding: "6px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.03)" }}>
-                                      &ldquo;{h.comentario}&rdquo;
+                                      &ldquo;
+                                      {h.comentario.length > 150 && !expandedLogs[h.id]
+                                        ? h.comentario.substring(0, 150) + "..."
+                                        : h.comentario}
+                                      &rdquo;
+                                      {h.comentario.length > 150 && (
+                                        <button
+                                          type="button"
+                                          style={{
+                                            background: "none",
+                                            border: "none",
+                                            color: "var(--accent)",
+                                            cursor: "pointer",
+                                            textDecoration: "underline",
+                                            fontSize: "11px",
+                                            marginLeft: "8px",
+                                            padding: 0,
+                                            fontWeight: "bold"
+                                          }}
+                                          onClick={() => setExpandedLogs(prev => ({ ...prev, [h.id]: !prev[h.id] }))}
+                                        >
+                                          {expandedLogs[h.id] ? "Esconder" : "Expandir"}
+                                        </button>
+                                      )}
                                     </div>
                                   )}
                                 </>
@@ -1158,15 +1216,14 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                 <h4 style={{ fontSize: 13, marginBottom: 10, color: "var(--muted)" }}>Pareceres Técnicos</h4>
                 {data.avaliacoes.map((av: any, i: number) => (
                   <div key={av.id} style={{ padding: 10, background: "rgba(255,255,255,0.02)", borderRadius: 6, marginBottom: 10, fontSize: 13, overflow: "hidden" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-                      <strong>{av.avaliador?.nome || "Avaliador Desconhecido"} <span className="badge">{statusLabelMap[av.etapa] || av.etapa}</span></strong>
-                      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                        <span style={{ color: "var(--muted)" }}>{new Date(av.createdAt).toLocaleString("pt-BR")}</span>
-                        <button className="btn secondary" style={smallButtonStyle} onClick={() => {
-                          setEditingParecerId(av.id);
-                          setEditingParecerText(av.parecer);
-                        }}>Editar</button>
-                      </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8, borderBottom: "1px solid rgba(255,255,255,0.05)", paddingBottom: "6px", marginBottom: "8px" }}>
+                      <strong>
+                        {av.avaliador?.nome || "Avaliador Desconhecido"}
+                        <span className="badge" style={{ marginLeft: 10, background: "rgba(255,255,255,0.05)" }}>
+                          {statusLabelMap[av.etapa] || av.etapa}
+                        </span>
+                      </strong>
+                      <span style={{ color: "var(--muted)" }}>{new Date(av.createdAt).toLocaleString("pt-BR")}</span>
                     </div>
                     {editingParecerId === av.id ? (
                       <div style={{ marginTop: 10 }}>
@@ -1182,9 +1239,19 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                       <div className="prose" style={{ marginTop: 5, whiteSpace: "pre-wrap" }}>{av.parecer}</div>
                     )}
                     {av.notaFinal !== null && <p style={{ marginTop: 5 }}><strong>Nota Final:</strong> {av.notaFinal}</p>}
-                    <p style={{ marginTop: 5, color: av.aprovado ? "var(--good)" : "var(--bad)" }}>
-                      Decisão: {av.aprovado ? "Aprovado" : "Rejeitado / Com Falhas"}
-                    </p>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8, flexWrap: "wrap", gap: 10 }}>
+                      <p style={{ margin: 0, color: av.aprovado ? "var(--good)" : "var(--bad)", fontWeight: 500 }}>
+                        Decisão: {av.aprovado ? "Aprovado" : "Rejeitado / Com Falhas"}
+                      </p>
+                      {editingParecerId !== av.id && (
+                        <button className="btn secondary" style={smallButtonStyle} onClick={() => {
+                          setEditingParecerId(av.id);
+                          setEditingParecerText(av.parecer);
+                        }}>
+                          Editar
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

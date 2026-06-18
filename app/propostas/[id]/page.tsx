@@ -158,14 +158,6 @@ export default function PropostaMarcosPage({ params }: { params: { id: string } 
     }
   }
 
-  const statusIcon: Record<string, string> = {
-    PENDENTE: "⏳",
-    SUBMETIDO: "📤",
-    VALIDADO: "✅",
-    AJUSTE_SOLICITADO: "🔄",
-    REJEITADO: "❌",
-  };
-
   if (loading) return <div className="card"><p className="p">Carregando marcos...</p></div>;
   if (error) return <div className="card"><p className="p" style={{ color: "var(--bad)" }}>{error}</p></div>;
 
@@ -176,9 +168,10 @@ export default function PropostaMarcosPage({ params }: { params: { id: string } 
           <Link href="/painel" className="btn secondary" style={buttonStyle}>Voltar ao Painel</Link>
           <h1 className="h1">Meus Marcos – {proposta?.titulo}</h1>
         </div>
+        
         {proposta?.status && (
           <span className="badge" style={{ padding: "6px 12px", fontSize: 13, fontWeight: "bold", backgroundColor: "var(--accent)", color: "#fff" }}>
-            Status do Projeto: {statusLabelMap[proposta.status] || proposta.status}
+            {statusLabelMap[proposta.status] || proposta.status}
           </span>
         )}
       </div>
@@ -189,10 +182,10 @@ export default function PropostaMarcosPage({ params }: { params: { id: string } 
       </p>
 
       <div className="card" style={{ background: "rgba(255,255,255,0.02)", borderColor: "var(--border)", padding: 14, fontSize: 13, lineHeight: 1.6 }}>
-        <h3 style={{ margin: "0 0 6px", fontSize: 14 }}>📅 Calendário Mensal de Entregas e Avaliações</h3>
+        <h3 style={{ margin: "0 0 6px", fontSize: 14 }}>Calendário Mensal de Entregas e Avaliações</h3>
         {ignorarPrazos ? (
           <div style={{ padding: "8px 12px", background: "rgba(16,185,129,0.1)", border: "1px solid var(--good)", borderRadius: 8, color: "var(--good)", fontWeight: "bold", marginTop: 8 }}>
-            ⚙️ Regras de Prazos Desativadas: A coordenação desativou as regras de calendário para este edital. Envio, reenvio e exclusão de evidências estão liberados em qualquer dia do mês para fins de testes/execução flexível.
+            Regras de Prazos Desativadas: A coordenação desativou as regras de calendário para este edital. Envio, reenvio e exclusão de evidências estão liberados em qualquer dia do mês para fins de testes/execução flexível.
           </div>
         ) : (
           <>
@@ -208,7 +201,7 @@ export default function PropostaMarcosPage({ params }: { params: { id: string } 
           </>
         )}
         <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--border)", fontSize: 13, color: "var(--muted)" }}>
-          ⚠️ <strong>Regra de Reenvio:</strong> Você terá apenas <strong>1 chance para realizar ajustes</strong> caso solicitado pela coordenação. A nota da segunda avaliação será a nota final e definitiva daquela entrega (multiplicadora do valor da bolsa).
+          <strong>Regra de Reenvio:</strong> Você terá apenas <strong>1 chance para realizar ajustes</strong> caso solicitado pela coordenação. A nota da segunda avaliação será a nota final e definitiva daquela entrega (multiplicadora do valor da bolsa).
         </div>
       </div>
 
@@ -217,7 +210,7 @@ export default function PropostaMarcosPage({ params }: { params: { id: string } 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
               <strong style={{ fontSize: 15 }}>Mês {m.mes}</strong>
-              <span className="badge" style={{ marginLeft: 10 }}>{statusIcon[m.status]} {marcoStatusLabelMap[m.status] || m.status}</span>
+              <span className="badge" style={{ marginLeft: 10 }}>{marcoStatusLabelMap[m.status] || m.status}</span>
               {m.status === "VALIDADO" && m.nota !== null && m.nota !== undefined && (
                 <span 
                   className="badge" 
@@ -270,7 +263,7 @@ export default function PropostaMarcosPage({ params }: { params: { id: string } 
 
           {m.status === "AJUSTE_SOLICITADO" && (
             <div style={{ marginTop: 10, padding: 10, background: "rgba(245,158,11,0.08)", borderRadius: 8, border: "1px solid rgba(245,158,11,0.3)", fontSize: 13, color: "var(--warn)" }}>
-              ⚠️ <strong>Ajustes solicitados pela coordenação:</strong> Você tem apenas <strong>1 chance para readequar as atividades e reenviar</strong> a entrega. A nota atribuída após esta reavaliação será a nota final e definitiva deste marco.
+              <strong>Ajustes solicitados pela coordenação:</strong> Você tem apenas <strong>1 chance para readequar as atividades e reenviar</strong> a entrega. A nota atribuída após esta reavaliação será a nota final e definitiva deste marco.
             </div>
           )}
 
@@ -382,7 +375,7 @@ export default function PropostaMarcosPage({ params }: { params: { id: string } 
           {/* Histórico / Linha do tempo de atividades do marco */}
           {m.historico && m.historico.length > 0 && (
             <div style={{ marginTop: 16, borderTop: "1px solid var(--border)", paddingTop: 14 }}>
-              <strong style={{ fontSize: 12, color: "var(--muted)", display: "block", marginBottom: 10 }}>📜 Histórico do Marco:</strong>
+              <strong style={{ fontSize: 12, color: "var(--muted)", display: "block", marginBottom: 10 }}>Histórico do Marco:</strong>
               <div style={{ display: "flex", flexDirection: "column", gap: 10, paddingLeft: 8, borderLeft: "2px solid rgba(255, 255, 255, 0.08)" }}>
                 {m.historico.map((h: any) => {
                   const dataOcorrencia = new Date(h.createdAt).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
@@ -440,7 +433,7 @@ export default function PropostaMarcosPage({ params }: { params: { id: string } 
                 <div className="label">Descrição da Evidência</div>
                 <textarea className="textarea" value={evidDesc} onChange={(e) => setEvidDesc(e.target.value)} placeholder="Descreva o que está sendo entregue e como isso cumpre o critério de aceitação..." />
               </div>
-              <label style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 10 }}>
+              <label style={{ display: "flex", gap: 4, alignItems: "center", marginTop: 10 }}>
                 <input type="checkbox" checked={evidPublica} onChange={(e) => setEvidPublica(e.target.checked)} />
                 <span className="p" style={{ margin: 0, fontSize: 13 }}>Esta evidência pode ser exibida na Página Pública do Projeto</span>
               </label>

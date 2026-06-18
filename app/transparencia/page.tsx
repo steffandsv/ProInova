@@ -132,16 +132,16 @@ export default function TransparenciaPage() {
           let displayStatus = "";
           let badgeClass = "badge";
           if (isReprovado) {
-             displayStatus = "❌ Reprovado/Cancelado";
+             displayStatus = "Reprovado/Cancelado";
              badgeClass = "badge bg-bad text-white";
           } else if (isExecucao) {
-             displayStatus = "⚙️ Em Execução";
+             displayStatus = "Em Execução";
              badgeClass = "badge bg-primary text-white";
           } else if (isConcluido) {
-             displayStatus = "🏁 Concluído";
+             displayStatus = "Concluído";
              badgeClass = "badge bg-good text-white";
           } else {
-             displayStatus = "✅ Aprovado (Em Trâmite Pré-Execução)";
+             displayStatus = "Aprovado (Em Trâmite Pré-Execução)";
              badgeClass = "badge";
           }
 

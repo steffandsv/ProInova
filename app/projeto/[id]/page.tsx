@@ -48,7 +48,7 @@ export default function ProjetoPublicoPage({ params }: { params: { id: string } 
             </p>
           </div>
           <span className="badge" style={{ fontSize: 14, padding: "8px 16px" }}>
-            {data.status === "EM_EXECUCAO" ? "⚙️ Em Execução" : "🏁 Concluído"}
+            {data.status === "EM_EXECUCAO" ? "Em Execução" : "Concluído"}
           </span>
         </div>
       </div>
