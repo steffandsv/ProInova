@@ -235,7 +235,62 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
     }
   }
 
-  if (loading) return <div className="card"><p className="p">Carregando...</p></div>;
+  if (loading) {
+    return (
+      <div className="grid wide-layout" style={{ gap: 14 }}>
+        {/* Header Skeleton */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
+          <div className="skeleton-line skeleton-title" style={{ width: "220px", height: "32px", margin: 0 }} />
+          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+            <div className="skeleton-line skeleton-badge" style={{ width: "90px", height: "28px" }} />
+            <div className="skeleton-line skeleton-button" style={{ width: "130px", height: "38px" }} />
+            <div className="skeleton-line skeleton-button" style={{ width: "80px", height: "38px" }} />
+          </div>
+        </div>
+
+        {/* Lei reference strip skeleton */}
+        <div className="skeleton-line" style={{ width: "100%", height: "42px", borderRadius: "12px", marginBottom: 10 }} />
+
+        {/* Tab Selector skeleton */}
+        <div style={{ display: "flex", gap: 8, padding: 6, background: "rgba(255,255,255,0.03)", border: "1px solid var(--border)", borderRadius: 14, marginTop: 14, marginBottom: 14 }}>
+          <div className="skeleton-line skeleton-tab" style={{ height: "40px" }} />
+          <div className="skeleton-line skeleton-tab" style={{ height: "40px" }} />
+          <div className="skeleton-line skeleton-tab" style={{ height: "40px" }} />
+          <div className="skeleton-line skeleton-tab" style={{ height: "40px" }} />
+        </div>
+
+        {/* Main Content card skeleton (copying Avaliação da proposta + Analista I.A.) */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {/* Card 1: Avaliação da Proposta */}
+          <div className="card" style={{ padding: 20, borderColor: "var(--border)", background: "rgba(255,255,255,0.02)" }}>
+            <div className="skeleton-line" style={{ width: "200px", height: "24px", marginBottom: 14 }} />
+            <div className="skeleton-line" style={{ width: "150px", height: "14px", marginBottom: 16 }} />
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div className="skeleton-line" style={{ width: "100%", height: "45px", borderRadius: "8px" }} />
+              <div className="skeleton-line" style={{ width: "100%", height: "45px", borderRadius: "8px" }} />
+              <div className="skeleton-line" style={{ width: "100%", height: "45px", borderRadius: "8px" }} />
+            </div>
+          </div>
+
+          {/* Card 2: Parecer Prévio do Analista I.A. */}
+          <div className="card" style={{ padding: "32px 24px", borderColor: "rgba(124, 92, 255, 0.2)", background: "rgba(255,255,255,0.01)" }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 24 }}>
+              <div className="skeleton-line" style={{ width: "40px", height: "40px", borderRadius: "50%", marginBottom: 12 }} />
+              <div className="skeleton-line" style={{ width: "260px", height: "24px", marginBottom: 8 }} />
+              <div className="skeleton-line" style={{ width: "320px", height: "14px" }} />
+            </div>
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 24, marginBottom: 24 }}>
+              <div className="skeleton-line" style={{ width: "90px", height: "90px", borderRadius: "50%" }} />
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "150px" }}>
+                <div className="skeleton-line" style={{ width: "100%" }} />
+                <div className="skeleton-line" style={{ width: "80%" }} />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
   if (error || !data) return <div className="card"><p className="p" style={{ color: "var(--bad)" }}>{error}</p></div>;
 
   // statusColors and statusColorsPrint imported from @/constants/status
@@ -492,11 +547,13 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                 <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", flexDirection: "column" }}>
                   <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: "var(--card-bg)", padding: "10px 14px", borderRadius: 8, border: "1px solid " + (decisao === "APROVADA" ? "#10b981" : "var(--border)") }}>
                     <input type="radio" name="decisao" value="APROVADA" checked={decisao === "APROVADA"} onChange={() => setDecisao("APROVADA")} style={{ width: 18, height: 18 }} />
-                    <span style={{ fontWeight: 600 }}>APROVADA</span> <span style={{ color: "var(--muted)", fontSize: 13 }}>— Avançar para próxima etapa</span>
+                    <span style={{ fontWeight: 600 }}>APROVADA</span> <span style={{ color: "var(--muted)", fontSize: 13 }}>—</span>
+                    <span style={{ fontSize: 13, color: "var(--muted)" }}>Avançar para próxima etapa</span>
                   </label>
                   <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: "var(--card-bg)", padding: "10px 14px", borderRadius: 8, border: "1px solid " + (decisao === "REPROVADA" ? "#ef4444" : "var(--border)") }}>
                     <input type="radio" name="decisao" value="REPROVADA" checked={decisao === "REPROVADA"} onChange={() => setDecisao("REPROVADA")} style={{ width: 18, height: 18 }} />
-                    <span style={{ fontWeight: 600 }}>REPROVADA</span> <span style={{ color: "var(--muted)", fontSize: 13 }}>— Encerrar / cancelar proposta</span>
+                    <span style={{ fontWeight: 600 }}>REPROVADA</span> <span style={{ color: "var(--muted)", fontSize: 13 }}>—</span>
+                    <span style={{ fontSize: 13, color: "var(--muted)" }}>Encerrar / cancelar proposta</span>
                   </label>
                   {data.availableTransitions.some((t: any) => t.to === "EM_AJUSTE") && (
                     <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: "var(--card-bg)", padding: "10px 14px", borderRadius: 8, border: "1px solid " + (decisao === "DEVOLVER" ? "#f59e0b" : "var(--border)") }}>
@@ -506,7 +563,8 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                   )}
                   <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", background: "var(--card-bg)", padding: "10px 14px", borderRadius: 8, border: "1px solid " + (decisao === "DILIGENCIA" ? "#8b5cf6" : "var(--border)") }}>
                     <input type="radio" name="decisao" value="DILIGENCIA" checked={decisao === "DILIGENCIA"} onChange={() => setDecisao("DILIGENCIA")} style={{ width: 18, height: 18 }} />
-                    <span style={{ fontWeight: 600 }}>DILIGÊNCIA</span> <span style={{ color: "var(--muted)", fontSize: 13 }}>— Retroceder para etapa anterior (entre avaliadores)</span>
+                    <span style={{ fontWeight: 600 }}>DILIGÊNCIA</span> <span style={{ color: "var(--muted)", fontSize: 13 }}>—</span>
+                    <span style={{ fontSize: 13, color: "var(--muted)" }}>Retroceder para etapa anterior (entre avaliadores)</span>
                   </label>
                 </div>
               </div>
@@ -890,7 +948,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                             }
                           }}
                         >
-                          {evaluatingMarcoId === m.id ? "Cancelar" : "⚖️ Reavaliar"}
+                          {evaluatingMarcoId === m.id ? "Cancelar" : "Reavaliar"}
                         </button>
                         <button
                           className="btn secondary"
@@ -902,7 +960,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                             }
                           }}
                         >
-                          🔄 Anular Avaliação
+                          Anular Avaliação
                         </button>
                       </div>
                     )}
@@ -954,7 +1012,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                           disabled={validatingMarco}
                           onClick={() => handleValidarMarco(m.id, "VALIDADO")}
                         >
-                          {validatingMarco ? "Processando..." : "✅ Validar (Aprovar)"}
+                          {validatingMarco ? "Processando..." : "Aprovar"}
                         </button>
                         <button
                           className="btn"
@@ -962,7 +1020,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                           disabled={validatingMarco || !comentarioMarco.trim()}
                           onClick={() => handleValidarMarco(m.id, "AJUSTE_SOLICITADO")}
                         >
-                          {validatingMarco ? "Processando..." : "🔄 Solicitar Ajustes"}
+                          {validatingMarco ? "Processando..." : "Solicitar Ajustes"}
                         </button>
                         <button
                           className="btn"
@@ -970,7 +1028,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                           disabled={validatingMarco || !comentarioMarco.trim()}
                           onClick={() => handleValidarMarco(m.id, "REJEITADO")}
                         >
-                          {validatingMarco ? "Processando..." : "❌ Rejeitar"}
+                          {validatingMarco ? "Processando..." : "Rejeitar"}
                         </button>
                       </div>
                     </div>
@@ -1139,7 +1197,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                                       disabled={isSavingMarcoLog}
                                       onClick={() => handleEditMarcoLog(h.id)}
                                     >
-                                      {isSavingMarcoLog ? "Salvando..." : "💾 Salvar"}
+                                      {isSavingMarcoLog ? "Salvando..." : "Salvar"}
                                     </button>
                                     <button
                                       className="btn secondary"

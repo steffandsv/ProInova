@@ -33,8 +33,8 @@ export default function AppHeader() {
       <nav className="nav">
         <Link href="/">Início</Link>
         <Link href="/transparencia">Transparência</Link>
-        <Link href="/ideias">💡 Ideias</Link>
-        <a href="/LEI.pdf" target="_blank" rel="noopener noreferrer" title="Consulte a Lei Municipal de Inovação">📋 Lei</a>
+        <Link href="/ideias">Ideias</Link>
+        <a href="/LEI.pdf" target="_blank" rel="noopener noreferrer" title="Consulte a Lei Municipal de Inovação">Lei</a>
         {checked && !user && (
           <div style={{ display: "flex", gap: 8, alignItems: "center", marginLeft: 8 }}>
             <Link href="/cadastro" style={{ color: "var(--muted)" }}>Cadastro</Link>
@@ -44,8 +44,14 @@ export default function AppHeader() {
         {user && (
           <div style={{ display: "flex", gap: 8, alignItems: "center", marginLeft: 8 }}>
             <Link href="/painel">Meu Painel</Link>
-            {isAdmin && <Link href="/admin/propostas" style={{ color: "var(--accent)" }}>⚙ Admin</Link>}
-            <Link href="/propostas/nova" className="badge" style={{ padding: "8px 16px", background: "rgba(124, 92, 255, 0.15)", borderColor: "var(--accent)", color: "var(--text)", fontWeight: 600 }}>+ Nova Proposta</Link>
+            {isAdmin && (
+              <>
+                <span className="nav-separator" />
+                <Link href="/admin/propostas" style={{ color: "var(--accent)" }}>Admin</Link>
+              </>
+            )}
+            <span className="nav-separator" />
+            <Link href="/propostas/nova" className="badge" style={{ padding: "8px 16px", background: "rgba(124, 92, 255, 0.15)", borderColor: "var(--accent)", color: "var(--text)", fontWeight: 600 }}>Nova Proposta</Link>
             <a href="/api/auth/logout" style={{ marginLeft: 8, color: "var(--muted)" }}>Sair</a>
           </div>
         )}

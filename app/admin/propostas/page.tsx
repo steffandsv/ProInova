@@ -13,6 +13,7 @@ type PropostaData = {
   createdAt: string;
   proponente: { nome: string; cpf: string; email: string };
   edital: { titulo: string; modalidade: string };
+  marcos: { status: string }[];
   _count: { equipe: number; marcos: number };
 };
 
@@ -52,14 +53,14 @@ export default function AdminPropostasPage() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
           <h1 className="h1">Gestão de Propostas e Avaliações</h1>
           <a href="/LEI.pdf" target="_blank" rel="noopener noreferrer" className="lei-banner">
-            📋 <strong>Lei</strong>
+            <strong>Lei</strong>📋 
           </a>
         </div>
         
         <div className="grid two" style={{ gap: 16, marginBottom: 20 }}>
           <div className="row" style={{ margin: 0 }}>
             <div className="label">Filtrar por Etapa / Status</div>
-            <select className="select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as any)}>
+            <select className="select" style={{ paddingRight: "36px" }} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as any)}>
               <option value="ALL">Todas as Propostas</option>
               <option value="RASCUNHO">🏠 Em Rascunho</option>
               <option value="SUBMETIDA">📥 Submetidas (Aguardando Triagem)</option>
@@ -77,7 +78,7 @@ export default function AdminPropostasPage() {
             </select>
           </div>
           <div className="row" style={{ margin: 0 }}>
-            <div className="label">🔍 Buscar por Nome do Proponente</div>
+            <div className="label">Buscar por Nome do Proponente</div>
             <input
               type="text"
               className="input"
@@ -127,7 +128,7 @@ export default function AdminPropostasPage() {
                         }
                       }}
                     >
-                      📋 {prop.id.substring(0, 8)}...
+                      {prop.id.substring(0, 8)}...
                     </td>
                     <td style={{ padding: "12px 10px", whiteSpace: "nowrap" }}>
                       <strong>{prop.proponente.nome}</strong><br/>
@@ -135,7 +136,7 @@ export default function AdminPropostasPage() {
                     </td>
                     <td style={{ padding: "12px 10px", whiteSpace: "nowrap" }}>
                       {prop.edital.titulo}<br/>
-                      <span className="badge" style={{ marginTop: 4, display: "inline-block" }}>{prop.edital.modalidade}</span>
+                      <span className="badge" style={{ marginTop: 4, display: "inline-block", fontSize: "10px", padding: "2px 6px" }}>{prop.edital.modalidade}</span>
                     </td>
                     <td style={{ padding: "12px 10px", whiteSpace: "nowrap" }}>
                       <span 
@@ -144,9 +145,9 @@ export default function AdminPropostasPage() {
                           backgroundColor: statusColors[prop.status] || "var(--border)",
                           color: "#fff",
                           fontWeight: "bold",
-                          fontSize: "11px",
+                          fontSize: "12.5px",
                           border: "none",
-                          padding: "4px 8px"
+                          padding: "5px 10px"
                         }}
                       >
                         {statusLabelMap[prop.status] || prop.status}
@@ -157,13 +158,23 @@ export default function AdminPropostasPage() {
                       📅 {prop._count.marcos} mês(es)
                     </td>
                     <td style={{ padding: "12px 10px", textAlign: "right", whiteSpace: "nowrap" }}>
-                      <Link 
-                        href={`/admin/propostas/${prop.id}`} 
-                        className="btn secondary" 
-                        style={{ whiteSpace: "nowrap", display: "inline-flex", alignItems: "center" }}
-                      >
-                        Avaliar / Detalhes
-                      </Link>
+                      <div style={{ position: "relative", display: "inline-block" }}>
+                        <Link 
+                          href={`/admin/propostas/${prop.id}`} 
+                          className="btn secondary" 
+                          style={{ 
+                            whiteSpace: "nowrap", 
+                            display: "inline-flex", 
+                            alignItems: "center", 
+                            fontSize: "12px", 
+                            padding: "6px 12px",
+                            borderColor: prop.marcos?.some((m) => m.status === "SUBMETIDO") ? "#D4AF37" : undefined,
+                            color: prop.marcos?.some((m) => m.status === "SUBMETIDO") ? "#D4AF37" : undefined
+                          }}
+                        >
+                          Avaliar / Detalhes
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}

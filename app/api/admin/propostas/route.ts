@@ -33,6 +33,9 @@ export async function GET(request: Request) {
         edital: {
           select: { titulo: true, modalidade: true },
         },
+        marcos: {
+          select: { status: true },
+        },
         _count: {
           select: { equipe: true, marcos: true },
         },
