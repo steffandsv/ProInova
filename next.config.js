@@ -9,7 +9,10 @@ const nextConfig = {
     // Ignora erros de TypeScript para não quebrar o build
     ignoreBuildErrors: true,
   },
-  experimental: { serverActions: { allowedOrigins: [] } },
+  experimental: { 
+    serverActions: { allowedOrigins: [] },
+    serverComponentsExternalPackages: ["pdfkit"]
+  },
 };
 
 module.exports = nextConfig;

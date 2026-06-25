@@ -138,6 +138,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
 
   useEffect(() => {
     loadData(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]);
 
   async function handleValidarMarco(marcoId: string, status: "SUBMETIDO" | "VALIDADO" | "AJUSTE_SOLICITADO" | "REJEITADO") {
@@ -935,6 +936,21 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                       </button>
                     ) : m.status !== "PENDENTE" && (
                       <div style={{ display: "flex", gap: 8 }}>
+                        {m.status === "VALIDADO" && (
+                          <a
+                            href={`/api/projetos/${params.id}/entregas/${m.id}/receipt`}
+                            className="btn secondary"
+                            style={{
+                              ...smallButtonStyle,
+                              borderColor: "var(--accent)",
+                              color: "var(--accent)",
+                              textDecoration: "none"
+                            }}
+                            download
+                          >
+                            Baixar Recibo PDF
+                          </a>
+                        )}
                         <button
                           className="btn secondary"
                           style={smallButtonStyle}

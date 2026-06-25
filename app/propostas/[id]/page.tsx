@@ -73,6 +73,7 @@ export default function PropostaMarcosPage({ params }: { params: { id: string } 
 
   useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]);
 
   async function fetchData() {
@@ -245,6 +246,21 @@ export default function PropostaMarcosPage({ params }: { params: { id: string } 
                   </span>
                 )}
               </div>
+              {m.status === "VALIDADO" && (
+                <a
+                  href={`/api/projetos/${params.id}/entregas/${m.id}/receipt`}
+                  className="btn secondary"
+                  style={{
+                    ...buttonStyle,
+                    borderColor: "var(--accent)",
+                    color: "var(--accent)",
+                    textDecoration: "none"
+                  }}
+                  download
+                >
+                  Baixar Recibo PDF
+                </a>
+              )}
               {["PENDENTE", "AJUSTE_SOLICITADO"].includes(m.status) && (
                 <button
                   className="btn secondary"
