@@ -209,14 +209,17 @@ export async function generateReceiptPdf(data: ReceiptData, absoluteLeiUrl: stri
            .stroke("#000000");
 
         doc.font("Helvetica-Bold")
-           .fontSize(9)
+           .fontSize(9.5)
            .fillColor("#2d3748")
-           .text("Gestor Responsável pelo Projeto", 50, signatureY + 8, { align: "center" });
+           .text("Steffan Diorgy Silva Vernillo", 50, signatureY + 8, { align: "center" });
 
         doc.font("Helvetica")
+           .fontSize(8.5)
+           .fillColor("#4a5568")
+           .text("Secretário de Comunicação e Governo Digital", 50, signatureY + 20, { align: "center" })
            .fontSize(8)
            .fillColor("#718096")
-           .text("Programa ProInova Jaborandi-SP", 50, signatureY + 20, { align: "center" });
+           .text("Programa ProInova Jaborandi-SP", 50, signatureY + 32, { align: "center" });
       });
 
       doc.end();
