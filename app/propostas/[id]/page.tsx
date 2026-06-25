@@ -162,6 +162,8 @@ export default function PropostaMarcosPage({ params }: { params: { id: string } 
     }
   }
 
+
+
   if (loading) return <div className="card"><p className="p">Carregando marcos...</p></div>;
   if (error) return <div className="card"><p className="p" style={{ color: "var(--bad)" }}>{error}</p></div>;
 
@@ -247,19 +249,40 @@ export default function PropostaMarcosPage({ params }: { params: { id: string } 
                 )}
               </div>
               {m.status === "VALIDADO" && (
-                <a
-                  href={`/api/projetos/${params.id}/entregas/${m.id}/receipt`}
-                  className="btn secondary"
-                  style={{
-                    ...buttonStyle,
-                    borderColor: "var(--accent)",
-                    color: "var(--accent)",
-                    textDecoration: "none"
-                  }}
-                  download
-                >
-                  Baixar Recibo PDF
-                </a>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                  {proposta?.equipe && proposta.equipe.length > 1 ? (
+                    proposta.equipe.map((eq: any) => (
+                      <a
+                        key={eq.id}
+                        href={`/api/projetos/${params.id}/entregas/${m.id}/receipt?membroId=${eq.id}`}
+                        className="btn secondary"
+                        style={{
+                          ...smallButtonStyle,
+                          borderColor: "var(--accent)",
+                          color: "var(--accent)",
+                          textDecoration: "none"
+                        }}
+                        download
+                      >
+                        Recibo: {eq.nome.split(" ")[0]}
+                      </a>
+                    ))
+                  ) : (
+                    <a
+                      href={`/api/projetos/${params.id}/entregas/${m.id}/receipt`}
+                      className="btn secondary"
+                      style={{
+                        ...buttonStyle,
+                        borderColor: "var(--accent)",
+                        color: "var(--accent)",
+                        textDecoration: "none"
+                      }}
+                      download
+                    >
+                      Baixar Recibo PDF
+                    </a>
+                  )}
+                </div>
               )}
               {["PENDENTE", "AJUSTE_SOLICITADO"].includes(m.status) && (
                 <button

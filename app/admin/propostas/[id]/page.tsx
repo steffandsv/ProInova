@@ -141,6 +141,8 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]);
 
+
+
   async function handleValidarMarco(marcoId: string, status: "SUBMETIDO" | "VALIDADO" | "AJUSTE_SOLICITADO" | "REJEITADO") {
     setValidatingMarco(status);
     try {
@@ -937,19 +939,40 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                     ) : m.status !== "PENDENTE" && (
                       <div style={{ display: "flex", gap: 8 }}>
                         {m.status === "VALIDADO" && (
-                          <a
-                            href={`/api/projetos/${params.id}/entregas/${m.id}/receipt`}
-                            className="btn secondary"
-                            style={{
-                              ...smallButtonStyle,
-                              borderColor: "var(--accent)",
-                              color: "var(--accent)",
-                              textDecoration: "none"
-                            }}
-                            download
-                          >
-                            Baixar Recibo PDF
-                          </a>
+                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                            {data?.equipe && data.equipe.length > 1 ? (
+                              data.equipe.map((eq: any) => (
+                                <a
+                                  key={eq.id}
+                                  href={`/api/projetos/${params.id}/entregas/${m.id}/receipt?membroId=${eq.id}`}
+                                  className="btn secondary"
+                                  style={{
+                                    ...smallButtonStyle,
+                                    borderColor: "var(--accent)",
+                                    color: "var(--accent)",
+                                    textDecoration: "none"
+                                  }}
+                                  download
+                                >
+                                  Recibo: {eq.nome.split(" ")[0]}
+                                </a>
+                              ))
+                            ) : (
+                              <a
+                                href={`/api/projetos/${params.id}/entregas/${m.id}/receipt`}
+                                className="btn secondary"
+                                style={{
+                                  ...smallButtonStyle,
+                                  borderColor: "var(--accent)",
+                                  color: "var(--accent)",
+                                  textDecoration: "none"
+                                }}
+                                download
+                              >
+                                Baixar Recibo PDF
+                              </a>
+                            )}
+                          </div>
                         )}
                         <button
                           className="btn secondary"

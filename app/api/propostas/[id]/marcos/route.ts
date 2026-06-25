@@ -16,6 +16,12 @@ export async function GET(request: Request, { params }: { params: { id: string }
         status: true, 
         titulo: true, 
         duracaoMeses: true,
+        equipe: {
+          select: {
+            id: true,
+            nome: true,
+          }
+        },
         edital: {
           select: {
             config: {

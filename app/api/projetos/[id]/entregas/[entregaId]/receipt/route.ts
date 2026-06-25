@@ -22,7 +22,7 @@ export async function GET(
           include: {
             proponente: { select: { id: true, nome: true, cpf: true } },
             equipe: {
-              select: { nome: true, cpf: true, percentualRateio: true },
+              select: { id: true, nome: true, cpf: true, percentualRateio: true },
             },
             edital: {
               include: { config: true },
@@ -64,8 +64,23 @@ export async function GET(
     const notaMultiplier = typeof marco.nota === "number" ? marco.nota / 10 : 1.0;
     const valorComNota = teto * notaMultiplier;
 
+    // Obter o membroId opcional dos query params
+    const { searchParams } = new URL(request.url);
+    const membroId = searchParams.get("membroId");
+
     // Calcular valores individuais de rateio
-    const participantes = marco.proposta.equipe.map((eq) => ({
+    let equipeMembros = marco.proposta.equipe;
+    if (membroId) {
+      equipeMembros = equipeMembros.filter((eq) => eq.id === membroId);
+      if (equipeMembros.length === 0) {
+        return NextResponse.json(
+          { error: "Integrante da equipe especificado não encontrado neste projeto." },
+          { status: 404 }
+        );
+      }
+    }
+
+    const participantes = equipeMembros.map((eq) => ({
       nome: eq.nome,
       cpf: eq.cpf,
       percentual: eq.percentualRateio,
