@@ -109,17 +109,6 @@ function AdminPropostasInner() {
         </div>
         
         <div style={{ marginBottom: 24, display: "flex", flexDirection: "column", gap: 18 }}>
-          <div className="row" style={{ margin: 0, maxWidth: "450px" }}>
-            <div className="label" style={{ marginBottom: 6 }}>Buscar por Nome do Proponente</div>
-            <input
-              type="text"
-              className="input"
-              placeholder="Digite o nome do proponente..."
-              value={proponenteFilter}
-              onChange={(e) => setProponenteFilter(e.target.value)}
-            />
-          </div>
-
           <div className="row" style={{ margin: 0 }}>
             <div className="label" style={{ marginBottom: 10 }}>Filtrar por Etapa / Status</div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -146,10 +135,62 @@ function AdminPropostasInner() {
               })}
             </div>
           </div>
+
+          <div className="row" style={{ margin: 0, width: "100%" }}>
+            <div className="label" style={{ marginBottom: 6 }}>Buscar por Nome do Proponente</div>
+            <input
+              type="text"
+              className="input"
+              placeholder="Digite o nome do proponente..."
+              value={proponenteFilter}
+              onChange={(e) => setProponenteFilter(e.target.value)}
+              style={{ width: "100%" }}
+            />
+          </div>
         </div>
 
         {loading ? (
-          <p className="p">Carregando propostas...</p>
+          <div style={{ overflowX: "auto", border: "1px solid var(--border)", borderRadius: 12 }}>
+            <table className="table" style={{ width: "100%", textAlign: "left", borderCollapse: "collapse", margin: 0 }}>
+              <thead>
+                <tr style={{ borderBottom: "1px solid var(--border)", background: "rgba(255,255,255,0.02)" }}>
+                  <th style={{ padding: "12px 10px", whiteSpace: "nowrap", width: "10%" }}>ID</th>
+                  <th style={{ padding: "12px 10px", whiteSpace: "nowrap", width: "25%" }}>Proponente</th>
+                  <th style={{ padding: "12px 10px", whiteSpace: "nowrap", width: "25%" }}>Edital (Modalidade)</th>
+                  <th style={{ padding: "12px 10px", whiteSpace: "nowrap", width: "15%" }}>Status</th>
+                  <th style={{ padding: "12px 10px", whiteSpace: "nowrap", width: "15%" }}>Equipe / Marcos</th>
+                  <th style={{ padding: "12px 10px", textAlign: "right", whiteSpace: "nowrap", width: "10%" }}>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...Array(5)].map((_, index) => (
+                  <tr key={index} style={{ borderBottom: "1px solid var(--border)" }}>
+                    <td style={{ padding: "16px 10px" }}>
+                      <div className="skeleton-line" style={{ width: "60px", height: "16px", borderRadius: "4px" }} />
+                    </td>
+                    <td style={{ padding: "16px 10px" }}>
+                      <div className="skeleton-line" style={{ width: "140px", height: "16px", borderRadius: "4px", marginBottom: "6px" }} />
+                      <div className="skeleton-line" style={{ width: "90px", height: "12px", borderRadius: "4px" }} />
+                    </td>
+                    <td style={{ padding: "16px 10px" }}>
+                      <div className="skeleton-line" style={{ width: "160px", height: "16px", borderRadius: "4px", marginBottom: "6px" }} />
+                      <div className="skeleton-line" style={{ width: "80px", height: "16px", borderRadius: "8px" }} />
+                    </td>
+                    <td style={{ padding: "16px 10px" }}>
+                      <div className="skeleton-line skeleton-badge" style={{ width: "90px", height: "24px", borderRadius: "6px" }} />
+                    </td>
+                    <td style={{ padding: "16px 10px" }}>
+                      <div className="skeleton-line" style={{ width: "110px", height: "14px", borderRadius: "4px", marginBottom: "6px" }} />
+                      <div className="skeleton-line" style={{ width: "80px", height: "14px", borderRadius: "4px" }} />
+                    </td>
+                    <td style={{ padding: "16px 10px", textAlign: "right" }}>
+                      <div className="skeleton-line skeleton-button" style={{ width: "110px", height: "30px", borderRadius: "8px", display: "inline-block" }} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : filteredPropostas.length === 0 ? (
           <p className="p">Nenhuma proposta encontrada.</p>
         ) : (
