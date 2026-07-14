@@ -44,6 +44,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState<"avaliacao" | "geral" | "marcos" | "historico">("avaliacao");
+  const [user, setUser] = useState<any>(null);
 
   const [parecerTexto, setParecerTexto] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -138,6 +139,12 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
 
   useEffect(() => {
     loadData(true);
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.ok) setUser(res.user);
+      })
+      .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]);
 
@@ -938,7 +945,7 @@ export default function AdminPropostaDetail({ params }: { params: { id: string }
                       </button>
                     ) : m.status !== "PENDENTE" && (
                       <div style={{ display: "flex", gap: 8 }}>
-                        {m.status === "VALIDADO" && (
+                        {m.status === "VALIDADO" && user?.role === "ADMIN" && (
                           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
                             {data?.equipe && data.equipe.length > 1 ? (
                               data.equipe.map((eq: any) => (

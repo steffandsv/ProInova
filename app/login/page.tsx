@@ -32,7 +32,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="card">
+    <form onSubmit={(e) => { e.preventDefault(); handleLogin(); }} className="card">
       <h1 className="h1">Entrar</h1>
       <p className="p">Acesse seu painel para cadastrar/acompanhar propostas e entregas.</p>
       <div className="grid two">
@@ -46,11 +46,11 @@ export default function LoginPage() {
         </div>
       </div>
       <div style={{ display: "flex", gap: 10, marginTop: 12, alignItems: "center" }}>
-        <button className="btn" onClick={handleLogin} disabled={loading}>
+        <button type="submit" className="btn" disabled={loading}>
           {loading ? "Entrando..." : "Entrar"}
         </button>
         {msg && <span className="p" style={{ margin: 0 }}>{msg}</span>}
       </div>
-    </div>
+    </form>
   );
 }

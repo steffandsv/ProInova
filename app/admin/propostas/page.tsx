@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { PropostaStatus } from "@prisma/client";
 import { statusLabelMap, statusColors } from "@/constants/status";
 
@@ -17,14 +18,54 @@ type PropostaData = {
   _count: { equipe: number; marcos: number };
 };
 
+const filterOptions = [
+  { value: "ALL", label: "✨ Todas" },
+  { value: "RASCUNHO", label: "🏠 Em Rascunho" },
+  { value: "SUBMETIDA", label: "📥 Submetidas" },
+  { value: "EM_TRIAGEM", label: "🔍 Em Triagem" },
+  { value: "PARECER_EDUCACAO", label: "📚 Parecer Educação" },
+  { value: "AVALIACAO_CMAA", label: "⚖️ Avaliação CMAA" },
+  { value: "CLASSIFICADA", label: "🏆 Classificada" },
+  { value: "HOMOLOGADA", label: "✅ Homologada" },
+  { value: "TERMO_OUTORGA", label: "📝 Outorga" },
+  { value: "EM_EXECUCAO", label: "⚙️ Em Execução" },
+  { value: "SUSPENSA", label: "⏸️ Suspensa" },
+  { value: "EM_AJUSTE", label: "⚠️ Aguardando Revisão" },
+  { value: "CANCELADA", label: "❌ Cancelada" },
+  { value: "CONCLUIDA", label: "🏁 Concluída" },
+];
+
 export default function AdminPropostasPage() {
+  return (
+    <Suspense fallback={
+      <div className="section" style={{ textAlign: "center", paddingTop: 100 }}>
+        <span className="gradient-text" style={{ fontSize: 24, fontWeight: 700 }}>Carregando propostas...</span>
+      </div>
+    }>
+      <AdminPropostasInner />
+    </Suspense>
+  );
+}
+
+function AdminPropostasInner() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const urlStatus = (searchParams.get("status") as PropostaStatus) || "ALL";
+
   const [propostas, setPropostas] = useState<PropostaData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<PropostaStatus | "ALL">("ALL");
+  const [statusFilter, setStatusFilter] = useState<PropostaStatus | "ALL">(urlStatus);
   const [proponenteFilter, setProponenteFilter] = useState("");
 
   useEffect(() => {
+    setStatusFilter(urlStatus);
+  }, [urlStatus]);
+
+  useEffect(() => {
     fetchPropostas();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter]);
 
   async function fetchPropostas() {
@@ -43,6 +84,16 @@ export default function AdminPropostasPage() {
     setLoading(false);
   }
 
+  function handleFilterChange(status: PropostaStatus | "ALL") {
+    const params = new URLSearchParams(searchParams.toString());
+    if (status === "ALL") {
+      params.delete("status");
+    } else {
+      params.set("status", status);
+    }
+    router.push(`${pathname}?${params.toString()}`);
+  }
+
   const filteredPropostas = propostas.filter((prop) =>
     prop.proponente.nome.toLowerCase().includes(proponenteFilter.toLowerCase())
   );
@@ -57,28 +108,9 @@ export default function AdminPropostasPage() {
           </a>
         </div>
         
-        <div className="grid two" style={{ gap: 16, marginBottom: 20 }}>
-          <div className="row" style={{ margin: 0 }}>
-            <div className="label">Filtrar por Etapa / Status</div>
-            <select className="select" style={{ paddingRight: "36px" }} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as any)}>
-              <option value="ALL">Todas as Propostas</option>
-              <option value="RASCUNHO">🏠 Em Rascunho</option>
-              <option value="SUBMETIDA">📥 Submetidas (Aguardando Triagem)</option>
-              <option value="EM_TRIAGEM">🔍 Em Triagem</option>
-              <option value="PARECER_EDUCACAO">📚 Aguardando Parecer (Educação)</option>
-              <option value="AVALIACAO_CMAA">⚖️ Em Avaliação pelo CMAA</option>
-              <option value="CLASSIFICADA">🏆 Classificada (Aguardando Homologação)</option>
-              <option value="HOMOLOGADA">✅ Homologada</option>
-              <option value="TERMO_OUTORGA">📝 Termo de Outorga</option>
-              <option value="EM_EXECUCAO">⚙️ Em Execução</option>
-              <option value="SUSPENSA">⏸️ Suspensa</option>
-              <option value="EM_AJUSTE">⚠️ Aguardando Revisão do Proponente</option>
-              <option value="CANCELADA">❌ Cancelada</option>
-              <option value="CONCLUIDA">🏁 Concluída</option>
-            </select>
-          </div>
-          <div className="row" style={{ margin: 0 }}>
-            <div className="label">Buscar por Nome do Proponente</div>
+        <div style={{ marginBottom: 24, display: "flex", flexDirection: "column", gap: 18 }}>
+          <div className="row" style={{ margin: 0, maxWidth: "450px" }}>
+            <div className="label" style={{ marginBottom: 6 }}>Buscar por Nome do Proponente</div>
             <input
               type="text"
               className="input"
@@ -86,6 +118,33 @@ export default function AdminPropostasPage() {
               value={proponenteFilter}
               onChange={(e) => setProponenteFilter(e.target.value)}
             />
+          </div>
+
+          <div className="row" style={{ margin: 0 }}>
+            <div className="label" style={{ marginBottom: 10 }}>Filtrar por Etapa / Status</div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {filterOptions.map((opt) => {
+                const isActive = statusFilter === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    className={`btn ${isActive ? "" : "secondary"}`}
+                    onClick={() => handleFilterChange(opt.value as any)}
+                    style={{
+                      fontSize: "12px",
+                      padding: "6px 12px",
+                      borderRadius: "10px",
+                      border: isActive ? "1px solid var(--accent)" : "1px solid var(--border)",
+                      transition: "all 0.15s ease",
+                      boxShadow: isActive ? "0 0 10px rgba(124, 92, 255, 0.25)" : "none",
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 

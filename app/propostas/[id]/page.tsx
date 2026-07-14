@@ -55,6 +55,7 @@ export default function PropostaMarcosPage({ params }: { params: { id: string } 
   const [marcos, setMarcos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [user, setUser] = useState<any>(null);
 
   const currentDay = new Date().getDate();
   const ignorarPrazos = proposta?.edital?.config?.ignorarPrazosMarcos ?? false;
@@ -73,6 +74,12 @@ export default function PropostaMarcosPage({ params }: { params: { id: string } 
 
   useEffect(() => {
     fetchData();
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.ok) setUser(res.user);
+      })
+      .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]);
 
@@ -248,7 +255,7 @@ export default function PropostaMarcosPage({ params }: { params: { id: string } 
                   </span>
                 )}
               </div>
-              {m.status === "VALIDADO" && (
+              {m.status === "VALIDADO" && user?.role === "ADMIN" && (
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
                   {proposta?.equipe && proposta.equipe.length > 1 ? (
                     proposta.equipe.map((eq: any) => (

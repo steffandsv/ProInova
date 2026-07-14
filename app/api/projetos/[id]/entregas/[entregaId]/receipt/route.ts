@@ -48,11 +48,10 @@ export async function GET(
     }
 
     // 4. Segurança / Autorização
-    // Apenas o próprio proponente ou administradores/avaliadores podem acessar
-    const isOwner = marco.proposta.proponenteId === session.userId;
-    const isAdmin = ["ADMIN", "TRIAGEM", "EDUCACAO", "CMAA", "PREFEITO"].includes(session.role);
+    // Apenas administradores do sistema podem acessar os recibos
+    const isAdmin = session.role === "ADMIN";
 
-    if (!isOwner && !isAdmin) {
+    if (!isAdmin) {
       return NextResponse.json(
         { error: "Sem permissão para gerar o recibo deste projeto." },
         { status: 403 }
