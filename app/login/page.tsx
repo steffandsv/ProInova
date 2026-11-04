@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { formatCPF, onlyDigits } from "@/lib/cpf";
+import AuthShell from "@/app/components/AuthShell";
+import { ErrorState, PasswordInput, Spinner } from "@/app/components/ui";
 
 export default function LoginPage() {
   const [cpf, setCpf] = useState("");
@@ -11,6 +14,10 @@ export default function LoginPage() {
 
   async function handleLogin() {
     setMsg(null);
+    if (onlyDigits(cpf).length !== 11 || !senha) {
+      setMsg("Informe o CPF completo e a senha.");
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch("/api/auth/login", {
@@ -32,25 +39,42 @@ export default function LoginPage() {
   }
 
   return (
-    <form onSubmit={(e) => { e.preventDefault(); handleLogin(); }} className="card">
-      <h1 className="h1">Entrar</h1>
-      <p className="p">Acesse seu painel para cadastrar/acompanhar propostas e entregas.</p>
-      <div className="grid two">
-        <div className="row">
-          <div className="label">CPF</div>
-          <input className="input" value={cpf} onChange={(e) => setCpf(formatCPF(e.target.value))} placeholder="000.000.000-00" />
+    <AuthShell asideTitle="Inovação pública feita por quem vive em Jaborandi.">
+      <form onSubmit={(e) => { e.preventDefault(); handleLogin(); }} className="auth-form" noValidate>
+        <div>
+          <h1 className="h1 auth-title">Entrar</h1>
+          <p className="p auth-subtitle">Acesse seu painel para cadastrar e acompanhar propostas e entregas.</p>
         </div>
+
         <div className="row">
-          <div className="label">Senha</div>
-          <input className="input" value={senha} onChange={(e) => setSenha(e.target.value)} type="password" />
+          <label className="label" htmlFor="login-cpf">CPF</label>
+          <input
+            id="login-cpf"
+            className="input"
+            value={cpf}
+            onChange={(e) => setCpf(formatCPF(e.target.value))}
+            placeholder="000.000.000-00"
+            inputMode="numeric"
+            autoComplete="username"
+            autoFocus
+          />
         </div>
-      </div>
-      <div style={{ display: "flex", gap: 10, marginTop: 12, alignItems: "center" }}>
-        <button type="submit" className="btn" disabled={loading}>
-          {loading ? "Entrando..." : "Entrar"}
+
+        <div className="row">
+          <label className="label" htmlFor="login-senha">Senha</label>
+          <PasswordInput id="login-senha" value={senha} onChange={setSenha} placeholder="Sua senha" />
+        </div>
+
+        {msg && <ErrorState message={msg} />}
+
+        <button type="submit" className="btn auth-submit" disabled={loading}>
+          {loading ? <><Spinner /> Entrando...</> : "Entrar"}
         </button>
-        {msg && <span className="p" style={{ margin: 0 }}>{msg}</span>}
-      </div>
-    </form>
+
+        <p className="auth-footer">
+          Ainda não tem conta? <Link href="/cadastro">Criar conta</Link>
+        </p>
+      </form>
+    </AuthShell>
   );
 }

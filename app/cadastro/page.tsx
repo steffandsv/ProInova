@@ -1,52 +1,54 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { formatCPF, isValidCPF, onlyDigits } from "@/lib/cpf";
-
-type LookupResult =
-  | { ok: true; data: { nome: string; telefone?: string | null; data_nasc?: string | null; rg?: string | null } }
-  | { ok: false; message: string };
+import AuthShell from "@/app/components/AuthShell";
+import { ErrorState, PasswordInput, Spinner } from "@/app/components/ui";
 
 export default function CadastroPage() {
+  const [etapa, setEtapa] = useState<1 | 2>(1);
   const [cpf, setCpf] = useState("");
+  const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
-  const [lookup, setLookup] = useState<LookupResult | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
 
   const cpfDigits = useMemo(() => onlyDigits(cpf), [cpf]);
-  const cpfValid = useMemo(() => isValidCPF(cpfDigits), [cpfDigits]);
 
-  async function handleLookup() {
-    setLookup(null);
-    if (!cpfValid) {
-      setLookup({ ok: false, message: "CPF inválido. Revise os dígitos." });
+  async function validarCpf() {
+    setErro(null);
+    if (!isValidCPF(cpfDigits)) {
+      setErro("CPF inválido. Revise os dígitos.");
       return;
     }
     setLoading(true);
     try {
       const res = await fetch(`/api/municipes/lookup?cpf=${cpfDigits}`);
       const json = await res.json();
-      setLookup(json);
+      if (!json.ok) {
+        setErro(json.message || "CPF não consta no cadastro municipal.");
+        return;
+      }
+      setNome(json.data.nome);
+      setEtapa(2);
     } catch {
-      setLookup({ ok: false, message: "Falha de rede. Tente novamente." });
+      setErro("Falha de rede. Tente novamente.");
     } finally {
       setLoading(false);
     }
   }
 
-  async function handleRegister() {
-    if (!lookup?.ok) {
-      setLookup({ ok: false, message: "Antes de cadastrar, valide seu CPF no cadastro municipal." });
-      return;
-    }
+  async function criarConta() {
+    setErro(null);
     if (senha.length < 8) {
-      setLookup({ ok: false, message: "Senha fraca. Use pelo menos 8 caracteres." });
+      setErro("Senha fraca. Use pelo menos 8 caracteres.");
       return;
     }
     if (senha !== confirm) {
-      setLookup({ ok: false, message: "As senhas não conferem." });
+      setErro("As senhas não conferem.");
       return;
     }
     setLoading(true);
@@ -58,80 +60,128 @@ export default function CadastroPage() {
       });
       const json = await res.json();
       if (!res.ok) {
-        setLookup({ ok: false, message: json?.message || "Erro ao cadastrar." });
+        setErro(json?.message || "Erro ao cadastrar.");
         return;
       }
       window.location.href = "/painel";
     } catch {
-      setLookup({ ok: false, message: "Falha de rede. Tente novamente." });
+      setErro("Falha de rede. Tente novamente.");
     } finally {
       setLoading(false);
     }
   }
 
-  return (
-    <div className="grid" style={{ gap: 14 }}>
-      <div className="card">
-        <h1 className="h1">Cadastro</h1>
-        <p className="p">
-          Digite seu CPF. Se ele constar no cadastro municipal, vamos preencher automaticamente seus dados básicos.
-          Isso reduz fraude e acelera a triagem.
-        </p>
+  function trocarCpf() {
+    setEtapa(1);
+    setNome("");
+    setErro(null);
+  }
 
-        <div className="grid two">
+  return (
+    <AuthShell asideTitle="Crie sua conta e tire sua ideia do papel.">
+      <form
+        className="auth-form"
+        noValidate
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (etapa === 1) validarCpf();
+          else criarConta();
+        }}
+      >
+        <div>
+          <h1 className="h1 auth-title">Criar conta</h1>
+          <p className="p auth-subtitle">
+            {etapa === 1
+              ? "Comece pelo seu CPF. Ele precisa constar no cadastro municipal de Jaborandi."
+              : "Agora defina como você vai entrar na plataforma."}
+          </p>
+        </div>
+
+        <ol className="auth-steps" aria-label="Etapas do cadastro">
+          <li className={etapa === 1 ? "is-current" : "is-done"}>
+            <span>{etapa === 1 ? "1" : "✓"}</span> Validar CPF
+          </li>
+          <li className={etapa === 2 ? "is-current" : undefined}>
+            <span>2</span> Criar conta
+          </li>
+        </ol>
+
+        {etapa === 1 ? (
           <div className="row">
-            <div className="label">CPF</div>
+            <label className="label" htmlFor="cadastro-cpf">CPF</label>
             <input
+              id="cadastro-cpf"
               className="input"
               value={cpf}
               onChange={(e) => setCpf(formatCPF(e.target.value))}
               placeholder="000.000.000-00"
               inputMode="numeric"
+              autoComplete="username"
+              autoFocus
             />
-            <button className="btn secondary" onClick={handleLookup} disabled={loading}>
-              {loading ? "Validando..." : "Validar CPF e puxar dados"}
-            </button>
-
-            {lookup && (
-              <div className="card" style={{ padding: 14 }}>
-                {lookup.ok ? (
-                  <div className="grid" style={{ gap: 8 }}>
-                    <div className="badge">
-                      <strong>Identificado</strong> dados encontrados
-                    </div>
-                    <div><span className="label">Nome:</span> {lookup.data.nome}</div>
-                    <div><span className="label">Telefone:</span> {lookup.data.telefone || "—"}</div>
-                    <div><span className="label">Nascimento:</span> {lookup.data.data_nasc || "—"}</div>
-                    <div><span className="label">RG:</span> {lookup.data.rg || "—"}</div>
-                  </div>
-                ) : (
-                  <div className="grid" style={{ gap: 10 }}>
-                    <div className="badge" style={{ borderColor: "rgba(239,68,68,0.45)" }}>
-                      <strong>Não encontrado</strong> ou inválido
-                    </div>
-                    <div className="p" style={{ margin: 0 }}>{lookup.message}</div>
-                  </div>
-                )}
+          </div>
+        ) : (
+          <>
+            <div className="auth-identity">
+              <div>
+                <div className="auth-identity-label">CPF validado</div>
+                <strong>{nome}</strong>
+                <div className="auth-identity-sub">{formatCPF(cpfDigits)}</div>
               </div>
-            )}
-          </div>
+              <button type="button" className="btn secondary chip" onClick={trocarCpf}>
+                Trocar CPF
+              </button>
+            </div>
 
-          <div className="row">
-            <div className="label">E-mail (para recuperar senha e receber notificações)</div>
-            <input className="input" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" />
-            <div className="label">Senha</div>
-            <input className="input" value={senha} onChange={(e) => setSenha(e.target.value)} type="password" placeholder="mínimo 8 caracteres" />
-            <div className="label">Confirmar senha</div>
-            <input className="input" value={confirm} onChange={(e) => setConfirm(e.target.value)} type="password" />
-            <button className="btn" onClick={handleRegister} disabled={loading}>
-              {loading ? "Criando conta..." : "Criar conta"}
-            </button>
-            <p className="p" style={{ margin: 0, fontSize: 12 }}>
-              Ao criar conta, você concorda com regras de confidencialidade e propriedade intelectual definidas no Programa.
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
+            <div className="row">
+              <label className="label" htmlFor="cadastro-email">E-mail</label>
+              <input
+                id="cadastro-email"
+                className="input"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="seu@email.com"
+                autoComplete="email"
+                autoFocus
+              />
+              <span className="auth-hint">Para recuperar a senha e receber avisos sobre a sua proposta.</span>
+            </div>
+
+            <div className="row">
+              <label className="label" htmlFor="cadastro-senha">Senha</label>
+              <PasswordInput id="cadastro-senha" value={senha} onChange={setSenha} placeholder="Mínimo de 8 caracteres" autoComplete="new-password" />
+            </div>
+
+            <div className="row">
+              <label className="label" htmlFor="cadastro-confirmar">Confirmar senha</label>
+              <PasswordInput id="cadastro-confirmar" value={confirm} onChange={setConfirm} placeholder="Repita a senha" autoComplete="new-password" />
+            </div>
+          </>
+        )}
+
+        {erro && <ErrorState message={erro} />}
+
+        <button type="submit" className="btn auth-submit" disabled={loading}>
+          {loading ? (
+            <><Spinner /> {etapa === 1 ? "Validando..." : "Criando conta..."}</>
+          ) : etapa === 1 ? (
+            "Continuar"
+          ) : (
+            "Criar conta"
+          )}
+        </button>
+
+        {etapa === 2 && (
+          <p className="auth-hint" style={{ textAlign: "center" }}>
+            Ao criar a conta, você concorda com as regras de confidencialidade e propriedade intelectual definidas no Programa.
+          </p>
+        )}
+
+        <p className="auth-footer">
+          Já tem conta? <Link href="/login">Entrar</Link>
+        </p>
+      </form>
+    </AuthShell>
   );
 }
