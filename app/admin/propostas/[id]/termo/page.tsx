@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { ErrorState, PageHeader } from "@/app/components/ui";
+import { DetailSkeleton } from "@/app/components/Skeletons";
 
 export default function TermoOutorgaPage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -19,11 +20,21 @@ export default function TermoOutorgaPage({ params }: { params: { id: string } })
         else setError(res.error || "Erro ao carregar");
         setLoading(false);
       })
-      .catch(() => setError("Falha de rede"));
+      .catch(() => {
+        setError("Falha de rede ao carregar a proposta.");
+        setLoading(false);
+      });
   }, [params.id]);
 
-  if (loading) return <div className="card"><p className="p">Carregando...</p></div>;
-  if (error || !data) return <div className="card"><p className="p" style={{ color: "var(--bad)" }}>{error}</p></div>;
+  if (loading) return <DetailSkeleton sections={3} />;
+  if (error || !data) {
+    return (
+      <div className="card">
+        <PageHeader title="Termo de Outorga" back={{ href: `/admin/propostas/${params.id}`, label: "Voltar para a proposta" }} />
+        <ErrorState message={error || "Proposta não encontrada."} />
+      </div>
+    );
+  }
 
   async function confirmarAssinatura() {
     if (!confirm("Tem certeza que deseja marcar o Termo como Assinado? A proposta entrará em execução imediatamente.")) return;
@@ -51,20 +62,27 @@ export default function TermoOutorgaPage({ params }: { params: { id: string } })
   const canSign = data.status === "HOMOLOGADA";
 
   return (
-    <div style={{ maxWidth: 800, margin: "0 auto", background: "#fff", color: "#000", padding: "40px", borderRadius: 8, boxShadow: "0px 4px 10px rgba(0,0,0,0.1)" }}>
-      {/* Botões Não-Imprimíveis para navegação interna */}
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 40 }} className="no-print">
-        <Link href={`/admin/propostas/${params.id}`} className="btn secondary" style={{ color: "var(--text)", borderColor: "var(--border)" }}>Voltar</Link>
-        <div style={{ display: "flex", gap: 10 }}>
-          <button className="btn secondary" onClick={() => window.print()} style={{ color: "var(--text)", borderColor: "var(--border)" }}>🖨️ Imprimir PDF</button>
-          
-          {canSign && (
-            <button className="btn" onClick={confirmarAssinatura} disabled={isSubmitting}>
-              {isSubmitting ? "Processando..." : "✅ Marcar como Assinado e Iniciar Execução"}
-            </button>
-          )}
-        </div>
+    <div className="grid" style={{ gap: 14 }}>
+      {/* Navegação interna: fica fora da folha e não sai na impressão */}
+      <div className="card no-print">
+        <PageHeader
+          title="Termo de Outorga"
+          subtitle={data.titulo}
+          back={{ href: `/admin/propostas/${params.id}`, label: "Voltar para a proposta" }}
+          actions={
+            <>
+              <button className="btn secondary" onClick={() => window.print()}>🖨️ Imprimir PDF</button>
+              {canSign && (
+                <button className="btn" onClick={confirmarAssinatura} disabled={isSubmitting}>
+                  {isSubmitting ? "Processando..." : "✅ Marcar como Assinado e Iniciar Execução"}
+                </button>
+              )}
+            </>
+          }
+        />
       </div>
+
+    <div style={{ maxWidth: 800, width: "100%", margin: "0 auto", background: "#fff", color: "#000", padding: "40px", borderRadius: 8, boxShadow: "0px 4px 10px rgba(0,0,0,0.1)" }}>
 
       <style jsx global>{`
         @media print {
@@ -185,6 +203,7 @@ export default function TermoOutorgaPage({ params }: { params: { id: string } })
           </div>
         )}
       </div>
+    </div>
     </div>
   );
 }

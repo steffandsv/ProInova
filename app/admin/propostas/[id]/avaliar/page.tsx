@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { ErrorState, PageHeader } from "@/app/components/ui";
+import { DetailSkeleton } from "@/app/components/Skeletons";
 
 export default function AdminPropostaAvaliarCMAA({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -34,11 +36,21 @@ export default function AdminPropostaAvaliarCMAA({ params }: { params: { id: str
         }
         setLoading(false);
       })
-      .catch(() => setError("Falha de rede"));
+      .catch(() => {
+        setError("Falha de rede ao carregar a proposta.");
+        setLoading(false);
+      });
   }, [params.id]);
 
-  if (loading) return <div className="card"><p className="p">Carregando formulário...</p></div>;
-  if (error || !data) return <div className="card"><p className="p" style={{ color: "var(--bad)" }}>{error}</p></div>;
+  if (loading) return <DetailSkeleton sections={2} />;
+  if (error || !data) {
+    return (
+      <div className="card">
+        <PageHeader title="Matriz de Avaliação (CMAA)" back={{ href: `/admin/propostas/${params.id}`, label: "Voltar para a proposta" }} />
+        <ErrorState message={error || "Proposta não encontrada."} />
+      </div>
+    );
+  }
 
   // Garantir que estamos na etapa certa
   if (data.status !== "AVALIACAO_CMAA") {
@@ -103,13 +115,11 @@ export default function AdminPropostaAvaliarCMAA({ params }: { params: { id: str
   return (
     <div className="grid" style={{ gap: 14 }}>
       <div className="card">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-          <h1 className="h1">Matriz de Avaliação (CMAA)</h1>
-          <Link href={`/admin/propostas/${data.id}`} className="btn secondary">Voltar para Proposta</Link>
-        </div>
-        <p className="p" style={{ marginBottom: 20 }}>
-          Protocolo: <strong>{data.id.split("-")[0].toUpperCase()}</strong> ({data.titulo})
-        </p>
+        <PageHeader
+          title="Matriz de Avaliação (CMAA)"
+          back={{ href: `/admin/propostas/${data.id}`, label: "Voltar para a proposta" }}
+          subtitle={<>Protocolo: <strong>{data.id.split("-")[0].toUpperCase()}</strong> ({data.titulo})</>}
+        />
 
         <a href="/LEI.pdf" target="_blank" rel="noopener noreferrer" className="lei-banner" style={{ marginBottom: 20 }}>
           📋 <strong>Consulte a Lei Municipal de Inovação</strong> — Referência para avaliação pelo CMAA
@@ -120,10 +130,10 @@ export default function AdminPropostaAvaliarCMAA({ params }: { params: { id: str
             <p className="p">O Edital não possui configuração de Pesos da Matriz. Apenas o parecer técnico será enviado.</p>
           </div>
         ) : (
-          <div style={{ overflowX: "auto", border: "1px solid var(--border)", borderRadius: 12, marginBottom: 14 }}>
-            <table className="table" style={{ width: "100%", fontSize: 13, borderCollapse: "collapse", margin: 0 }}>
+          <div className="data-table-wrap" style={{ marginBottom: 14 }}>
+            <table className="data-table" style={{ fontSize: 13 }}>
               <thead>
-                <tr style={{ borderBottom: "1px solid var(--border)", background: "rgba(255,255,255,0.02)" }}>
+                <tr>
                   <th style={{ padding: 10, textAlign: "left" }}>Critério (Anexo III)</th>
                   <th style={{ padding: 10, textAlign: "center", width: 80 }}>Peso</th>
                   <th style={{ padding: 10, textAlign: "center", width: 120 }}>Nota (0-10)</th>
@@ -135,7 +145,7 @@ export default function AdminPropostaAvaliarCMAA({ params }: { params: { id: str
                   const numVal = notas[p.criterio] || 0;
                   return (
                     <tr key={i} style={{ borderBottom: "1px solid var(--border)" }}>
-                      <td style={{ padding: 10, lineHeight: 1.4 }}>{p.criterio}</td>
+                      <td className="wrap" style={{ padding: 10, lineHeight: 1.4 }}>{p.criterio}</td>
                       <td style={{ padding: 10, textAlign: "center" }}>x {p.peso}</td>
                       <td style={{ padding: 10 }}>
                         <input 

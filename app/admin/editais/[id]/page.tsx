@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ErrorState, LeiLink, PageHeader } from "@/app/components/ui";
+import { FormSkeleton } from "@/app/components/Skeletons";
 
 const DEFAULT_PESOS = [
   { criterio: "Relevância do Problema (0-10)", peso: 2 },
@@ -107,13 +109,17 @@ export default function EditalFormPage({ params }: { params: { id: string } }) {
     }
   }
 
-  if (initLoading) return <div className="card"><p className="p">Carregando...</p></div>;
+  if (initLoading) return <FormSkeleton fields={8} />;
 
   return (
     <div className="grid" style={{ gap: 14 }}>
       <div className="card">
-        <h1 className="h1">{isNew ? "Novo Edital" : "Editar Edital"}</h1>
-        
+        <PageHeader
+          title={isNew ? "Novo Edital" : "Editar Edital"}
+          back={{ href: "/admin/editais", label: "Voltar para os editais" }}
+          actions={<LeiLink />}
+        />
+
         <div className="grid two">
           <div className="row">
             <div className="label">Título</div>
@@ -209,10 +215,10 @@ export default function EditalFormPage({ params }: { params: { id: string } }) {
           </div>
         </div>
 
+        {msg && <div style={{ marginTop: 14 }}><ErrorState message={msg} /></div>}
         <div style={{ display: "flex", gap: 10, marginTop: 14, alignItems: "center" }}>
           <button className="btn" onClick={salvar} disabled={loading}>{loading ? "Salvando..." : "Salvar Edital"}</button>
           <a href="/admin/editais" className="btn secondary">Cancelar</a>
-          {msg && <span className="p" style={{ margin: 0, color: "var(--bad)" }}>{msg}</span>}
         </div>
       </div>
     </div>

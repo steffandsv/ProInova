@@ -1,127 +1,205 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { modalidadeLabelMap } from "@/constants/status";
+import { useUrlState } from "@/app/hooks/useUrlState";
+import { EmptyState, ErrorState, FilterChips, FilterGroup, Filters, LeiLink, PageHeader, SearchInput, StatCard, normalize } from "@/app/components/ui";
+import { ListPageSkeleton, StatsSkeleton, TableSkeleton, type SkeletonColumn } from "@/app/components/Skeletons";
+
+type Rateio = { nome: string; cpf: string; percentual: number; valor: number };
+type ItemLote = {
+  marcoId: string;
+  mes: number;
+  entregavel: string;
+  validadoEm: string | null;
+  propostaTitulo: string;
+  modalidade: string;
+  proponente: string;
+  cpfProponente: string;
+  valorMensal: number;
+  rateio: Rateio[];
+};
+
+const modalidadeOptions = [
+  { value: "ALL", label: "Todas" },
+  { value: "EDUCACAO", label: "📚 Educação" },
+  { value: "GERAL", label: "🏛️ Geral" },
+];
+
+const columns: SkeletonColumn[] = [
+  { label: "Proposta", width: "28%", cell: "two" },
+  { label: "Mês", width: "6%", align: "center", cell: "short" },
+  { label: "Entregável", width: "28%", cell: "text" },
+  { label: "Modalidade", width: "12%", align: "center", cell: "short" },
+  { label: "Valor Mensal (R$)", width: "14%", align: "right", cell: "short" },
+  { label: "Validado Em", width: "12%", align: "center", cell: "short" },
+];
+
+const reais = (valor: number) => valor.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export default function AdminPagamentosPage() {
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  return (
+    <Suspense fallback={<ListPageSkeleton columns={columns} chips={3} />}>
+      <AdminPagamentosInner />
+    </Suspense>
+  );
+}
 
-  useEffect(() => {
-    fetch("/api/admin/pagamentos")
-      .then((r) => r.json())
-      .then((res) => {
-        if (res.ok) setData(res);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+function AdminPagamentosInner() {
+  const [modalidadeFilter, setModalidadeFilter] = useUrlState("modalidade", "ALL");
+  const [busca, setBusca] = useUrlState("q");
+
+  const [itens, setItens] = useState<ItemLote[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState("");
+
+  const carregar = useCallback(async () => {
+    setLoading(true);
+    setErro("");
+    try {
+      const res = await fetch("/api/admin/pagamentos");
+      const json = await res.json().catch(() => ({}));
+      if (res.ok && json.ok) setItens(json.data || []);
+      else setErro(json.error || json.message || "Não foi possível carregar os dados de pagamento.");
+    } catch {
+      setErro("Falha de rede ao carregar os dados de pagamento.");
+    }
+    setLoading(false);
   }, []);
 
-  if (loading) return <div className="card"><p className="p">Carregando dados de pagamento...</p></div>;
-  if (!data) return <div className="card"><p className="p">Erro ao carregar dados.</p></div>;
+  useEffect(() => {
+    carregar();
+  }, [carregar]);
+
+  const termo = normalize(busca);
+  const filtrados = itens.filter(
+    (i) =>
+      (modalidadeFilter === "ALL" || i.modalidade === modalidadeFilter) &&
+      (normalize(i.propostaTitulo).includes(termo) || normalize(i.proponente).includes(termo))
+  );
+  const filtrando = modalidadeFilter !== "ALL" || busca !== "";
+  const valorFiltrado = filtrados.reduce((acc, i) => acc + i.valorMensal, 0);
 
   return (
-    <div className="grid wide-layout" style={{ gap: 14 }}>
+    <div className="grid" style={{ gap: 14 }}>
       <div className="card">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h1 className="h1">Gestão de Pagamentos</h1>
-          <a href="/api/admin/pagamentos?format=csv" className="btn secondary" download>
-            📥 Exportar CSV (Lote Financeiro)
-          </a>
-        </div>
-      </div>
+        <PageHeader
+          title="Gestão de Pagamentos"
+          subtitle="Marcos validados e aptos para o lote financeiro."
+          actions={
+            <>
+              <a href="/api/admin/pagamentos?format=csv" className="btn secondary" download>
+                📥 Exportar CSV (Lote Financeiro)
+              </a>
+              <LeiLink />
+            </>
+          }
+        />
 
-      <div className="grid two" style={{ gap: 14 }}>
-        <div className="card" style={{ textAlign: "center", padding: 20 }}>
-          <div style={{ fontSize: 32, fontWeight: "bold", color: "var(--accent)" }}>{data.totalMarcos}</div>
-          <div className="p" style={{ margin: 0 }}>Marcos Validados (Aptos)</div>
-        </div>
-        <div className="card" style={{ textAlign: "center", padding: 20 }}>
-          <div style={{ fontSize: 32, fontWeight: "bold", color: "var(--good)" }}>
-            R$ {data.valorTotal?.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+        <Filters>
+          <FilterGroup label="Filtrar por Modalidade">
+            <FilterChips options={modalidadeOptions} value={modalidadeFilter} onChange={(v) => setModalidadeFilter(v)} />
+          </FilterGroup>
+          <FilterGroup label="Buscar por Proposta ou Proponente">
+            <SearchInput value={busca} onChange={(v) => setBusca(v, { replace: true })} placeholder="Digite o título da proposta ou o nome do proponente..." />
+          </FilterGroup>
+        </Filters>
+
+        {erro && <ErrorState message={erro} onRetry={carregar} />}
+
+        {loading ? (
+          <div className="grid" style={{ gap: 14 }}>
+            <StatsSkeleton count={2} />
+            <TableSkeleton columns={columns} />
           </div>
-          <div className="p" style={{ margin: 0 }}>Valor Total Elegível</div>
-        </div>
+        ) : erro ? null : (
+          <div className="grid" style={{ gap: 14 }}>
+            <div className="stats-grid">
+              <StatCard value={filtrados.length} label={filtrando ? `Marcos aptos (filtrados de ${itens.length})` : "Marcos Validados (Aptos)"} />
+              <StatCard value={`R$ ${reais(valorFiltrado)}`} label={filtrando ? "Valor elegível dos filtrados" : "Valor Total Elegível"} color="var(--good)" />
+            </div>
+
+            {filtrados.length === 0 ? (
+              <EmptyState>{itens.length === 0 ? "Nenhum marco validado pendente de pagamento." : "Nenhum marco encontrado com esses filtros."}</EmptyState>
+            ) : (
+              <>
+                <div className="data-table-wrap">
+                  <table className="data-table" style={{ fontSize: 13 }}>
+                    <thead>
+                      <tr>
+                        <th>Proposta</th>
+                        <th className="center">Mês</th>
+                        <th>Entregável</th>
+                        <th className="center">Modalidade</th>
+                        <th className="num">Valor Mensal (R$)</th>
+                        <th className="center">Validado Em</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filtrados.map((item) => (
+                        <tr key={item.marcoId}>
+                          <td>
+                            <strong>{item.propostaTitulo}</strong><br />
+                            <span className="sub">{item.proponente} ({item.cpfProponente})</span>
+                          </td>
+                          <td className="center">{item.mes}</td>
+                          <td className="wrap">{item.entregavel}</td>
+                          <td className="center"><span className="badge">{modalidadeLabelMap[item.modalidade] || item.modalidade}</span></td>
+                          <td className="num" style={{ fontWeight: 700 }}>{reais(item.valorMensal)}</td>
+                          <td className="center" style={{ fontSize: 12 }}>
+                            {item.validadoEm ? new Date(item.validadoEm).toLocaleDateString("pt-BR") : "-"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr>
+                        <td colSpan={4} className="num">Total{filtrando ? " filtrado" : ""}:</td>
+                        <td className="num" style={{ fontSize: 15, color: "var(--good)" }}>R$ {reais(valorFiltrado)}</td>
+                        <td></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+
+                <details>
+                  <summary style={{ cursor: "pointer", fontWeight: 700, fontSize: 14, padding: "6px 2px" }}>
+                    📋 Ver Detalhamento do Rateio por Membro
+                  </summary>
+                  <div className="data-table-wrap" style={{ marginTop: 10 }}>
+                    <table className="data-table" style={{ fontSize: 12 }}>
+                      <thead>
+                        <tr>
+                          <th>Proposta</th>
+                          <th className="center">Mês</th>
+                          <th>Membro</th>
+                          <th>CPF</th>
+                          <th className="center">% Rateio</th>
+                          <th className="num">Valor (R$)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filtrados.flatMap((item) =>
+                          item.rateio.map((r, idx) => (
+                            <tr key={`${item.marcoId}-${idx}`}>
+                              <td>{item.propostaTitulo}</td>
+                              <td className="center">{item.mes}</td>
+                              <td>{r.nome}</td>
+                              <td>{r.cpf}</td>
+                              <td className="center">{r.percentual}%</td>
+                              <td className="num">{reais(r.valor)}</td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </details>
+              </>
+            )}
+          </div>
+        )}
       </div>
-
-      {data.data?.length === 0 ? (
-        <div className="card"><p className="p">Nenhum marco validado pendente de pagamento.</p></div>
-      ) : (
-        <div className="card" style={{ overflowX: "auto" }}>
-          <table className="table" style={{ width: "100%", fontSize: 13, borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ borderBottom: "1px solid var(--border)", background: "rgba(255,255,255,0.02)" }}>
-                <th style={{ padding: 10, textAlign: "left" }}>Proposta</th>
-                <th style={{ padding: 10, textAlign: "center" }}>Mês</th>
-                <th style={{ padding: 10, textAlign: "left" }}>Entregável</th>
-                <th style={{ padding: 10, textAlign: "center" }}>Modalidade</th>
-                <th style={{ padding: 10, textAlign: "right" }}>Valor Mensal (R$)</th>
-                <th style={{ padding: 10, textAlign: "center" }}>Validado Em</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.data.map((item: any) => (
-                <tr key={item.marcoId} style={{ borderBottom: "1px solid var(--border)" }}>
-                  <td style={{ padding: 10 }}>
-                    <strong>{item.propostaTitulo}</strong><br />
-                    <span style={{ fontSize: 11, color: "var(--muted)" }}>{item.proponente} ({item.cpfProponente})</span>
-                  </td>
-                  <td style={{ padding: 10, textAlign: "center" }}>{item.mes}</td>
-                  <td style={{ padding: 10 }}>{item.entregavel}</td>
-                  <td style={{ padding: 10, textAlign: "center" }}><span className="badge">{item.modalidade}</span></td>
-                  <td style={{ padding: 10, textAlign: "right", fontWeight: "bold" }}>
-                    {item.valorMensal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                  </td>
-                  <td style={{ padding: 10, textAlign: "center", fontSize: 12 }}>
-                    {item.validadoEm ? new Date(item.validadoEm).toLocaleDateString("pt-BR") : "-"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr style={{ background: "rgba(255,255,255,0.05)" }}>
-                <td colSpan={4} style={{ padding: 14, textAlign: "right", fontWeight: "bold" }}>Total:</td>
-                <td style={{ padding: 14, textAlign: "right", fontWeight: "bold", fontSize: 15, color: "var(--good)" }}>
-                  R$ {data.valorTotal?.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                </td>
-                <td></td>
-              </tr>
-            </tfoot>
-          </table>
-
-          {/* Detalhamento do rateio por membro */}
-          <details style={{ marginTop: 20 }}>
-            <summary style={{ cursor: "pointer", fontWeight: "bold", fontSize: 14, padding: 10 }}>
-              📋 Ver Detalhamento do Rateio por Membro
-            </summary>
-            <table className="table" style={{ width: "100%", fontSize: 12, borderCollapse: "collapse", marginTop: 10 }}>
-              <thead>
-                <tr style={{ borderBottom: "1px solid var(--border)" }}>
-                  <th style={{ padding: 8, textAlign: "left" }}>Proposta</th>
-                  <th style={{ padding: 8, textAlign: "center" }}>Mês</th>
-                  <th style={{ padding: 8, textAlign: "left" }}>Membro</th>
-                  <th style={{ padding: 8, textAlign: "left" }}>CPF</th>
-                  <th style={{ padding: 8, textAlign: "center" }}>% Rateio</th>
-                  <th style={{ padding: 8, textAlign: "right" }}>Valor (R$)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.data.flatMap((item: any) =>
-                  item.rateio.map((r: any, idx: number) => (
-                    <tr key={`${item.marcoId}-${idx}`} style={{ borderBottom: "1px solid var(--border)" }}>
-                      <td style={{ padding: 8 }}>{item.propostaTitulo}</td>
-                      <td style={{ padding: 8, textAlign: "center" }}>{item.mes}</td>
-                      <td style={{ padding: 8 }}>{r.nome}</td>
-                      <td style={{ padding: 8 }}>{r.cpf}</td>
-                      <td style={{ padding: 8, textAlign: "center" }}>{r.percentual}%</td>
-                      <td style={{ padding: 8, textAlign: "right" }}>{r.valor.toFixed(2)}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </details>
-        </div>
-      )}
     </div>
   );
 }
