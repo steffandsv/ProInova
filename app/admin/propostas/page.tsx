@@ -1,12 +1,12 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { PropostaStatus } from "@prisma/client";
 import { statusLabelMap, statusColors } from "@/constants/status";
-
-
+import { useUrlState } from "@/app/hooks/useUrlState";
+import { EmptyState, ErrorState, FilterChips, FilterGroup, Filters, LeiLink, PageHeader, SearchInput, StatusBadge, normalize } from "@/app/components/ui";
+import { ListPageSkeleton, TableSkeleton, type SkeletonColumn } from "@/app/components/Skeletons";
 
 type PropostaData = {
   id: string;
@@ -35,186 +35,104 @@ const filterOptions = [
   { value: "CONCLUIDA", label: "🏁 Concluída" },
 ];
 
+const columns: SkeletonColumn[] = [
+  { label: "ID", width: "10%", cell: "short" },
+  { label: "Proponente", width: "25%", cell: "two" },
+  { label: "Edital (Modalidade)", width: "25%", cell: "text-tag" },
+  { label: "Status", width: "15%", cell: "badge" },
+  { label: "Equipe / Marcos", width: "15%", cell: "meta" },
+  { label: "Ações", width: "10%", align: "right", cell: "button" },
+];
+
 export default function AdminPropostasPage() {
   return (
-    <Suspense fallback={
-      <div className="section" style={{ textAlign: "center", paddingTop: 100 }}>
-        <span className="gradient-text" style={{ fontSize: 24, fontWeight: 700 }}>Carregando propostas...</span>
-      </div>
-    }>
+    <Suspense fallback={<ListPageSkeleton columns={columns} chips={8} />}>
       <AdminPropostasInner />
     </Suspense>
   );
 }
 
 function AdminPropostasInner() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-
-  const urlStatus = (searchParams.get("status") as PropostaStatus) || "ALL";
+  const [statusFilter, setStatusFilter] = useUrlState("status", "ALL");
+  const [busca, setBusca] = useUrlState("q");
 
   const [propostas, setPropostas] = useState<PropostaData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<PropostaStatus | "ALL">(urlStatus);
-  const [proponenteFilter, setProponenteFilter] = useState("");
+  const [erro, setErro] = useState("");
 
-  useEffect(() => {
-    setStatusFilter(urlStatus);
-  }, [urlStatus]);
-
-  useEffect(() => {
-    fetchPropostas();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter]);
-
-  async function fetchPropostas() {
+  const fetchPropostas = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
+    setErro("");
     let url = "/api/admin/propostas";
     if (statusFilter !== "ALL") {
       url += `?status=${statusFilter}`;
     }
-    const res = await fetch(url);
-    if (!res.ok) {
-      setLoading(false);
-      return;
+    try {
+      const res = await fetch(url, { signal });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setPropostas([]);
+        setErro(json.error || json.message || "Não foi possível carregar as propostas.");
+      } else {
+        setPropostas(json.data || []);
+      }
+    } catch (e: any) {
+      if (e?.name === "AbortError") return;
+      setPropostas([]);
+      setErro("Falha de rede ao carregar as propostas.");
     }
-    const json = await res.json();
-    setPropostas(json.data || []);
     setLoading(false);
-  }
+  }, [statusFilter]);
 
-  function handleFilterChange(status: PropostaStatus | "ALL") {
-    const params = new URLSearchParams(searchParams.toString());
-    if (status === "ALL") {
-      params.delete("status");
-    } else {
-      params.set("status", status);
-    }
-    router.push(`${pathname}?${params.toString()}`);
-  }
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchPropostas(controller.signal);
+    return () => controller.abort();
+  }, [fetchPropostas]);
 
-  const filteredPropostas = propostas.filter((prop) =>
-    prop.proponente.nome.toLowerCase().includes(proponenteFilter.toLowerCase())
-  );
+  const filteredPropostas = propostas.filter((prop) => normalize(prop.proponente.nome).includes(normalize(busca)));
 
   return (
     <div className="grid wide-layout" style={{ gap: 14 }}>
       <div className="card">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
-          <h1 className="h1">Gestão de Propostas e Avaliações</h1>
-          <a href="/LEI.pdf" target="_blank" rel="noopener noreferrer" className="lei-banner">
-            <strong>Lei</strong>📋 
-          </a>
-        </div>
-        
-        <div style={{ marginBottom: 24, display: "flex", flexDirection: "column", gap: 18 }}>
-          <div className="row" style={{ margin: 0 }}>
-            <div className="label" style={{ marginBottom: 10 }}>Filtrar por Etapa / Status</div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              {filterOptions.map((opt) => {
-                const isActive = statusFilter === opt.value;
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    className={`btn ${isActive ? "" : "secondary"}`}
-                    onClick={() => handleFilterChange(opt.value as any)}
-                    style={{
-                      fontSize: "12px",
-                      padding: "6px 12px",
-                      borderRadius: "10px",
-                      border: isActive ? "1px solid var(--accent)" : "1px solid var(--border)",
-                      transition: "all 0.15s ease",
-                      boxShadow: isActive ? "0 0 10px rgba(124, 92, 255, 0.25)" : "none",
-                    }}
-                  >
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+        <PageHeader title="Gestão de Propostas e Avaliações" actions={<LeiLink />} />
 
-          <div className="row" style={{ margin: 0, width: "100%" }}>
-            <div className="label" style={{ marginBottom: 6 }}>Buscar por Nome do Proponente</div>
-            <input
-              type="text"
-              className="input"
-              placeholder="Digite o nome do proponente..."
-              value={proponenteFilter}
-              onChange={(e) => setProponenteFilter(e.target.value)}
-              style={{ width: "100%" }}
-            />
-          </div>
-        </div>
+        <Filters>
+          <FilterGroup label="Filtrar por Etapa / Status">
+            <FilterChips options={filterOptions} value={statusFilter} onChange={(v) => setStatusFilter(v)} />
+          </FilterGroup>
+
+          <FilterGroup label="Buscar por Nome do Proponente">
+            <SearchInput value={busca} onChange={(v) => setBusca(v, { replace: true })} placeholder="Digite o nome do proponente..." />
+          </FilterGroup>
+        </Filters>
+
+        {erro && <ErrorState message={erro} onRetry={() => fetchPropostas()} />}
 
         {loading ? (
-          <div style={{ overflowX: "auto", border: "1px solid var(--border)", borderRadius: 12 }}>
-            <table className="table" style={{ width: "100%", textAlign: "left", borderCollapse: "collapse", margin: 0 }}>
-              <thead>
-                <tr style={{ borderBottom: "1px solid var(--border)", background: "rgba(255,255,255,0.02)" }}>
-                  <th style={{ padding: "12px 10px", whiteSpace: "nowrap", width: "10%" }}>ID</th>
-                  <th style={{ padding: "12px 10px", whiteSpace: "nowrap", width: "25%" }}>Proponente</th>
-                  <th style={{ padding: "12px 10px", whiteSpace: "nowrap", width: "25%" }}>Edital (Modalidade)</th>
-                  <th style={{ padding: "12px 10px", whiteSpace: "nowrap", width: "15%" }}>Status</th>
-                  <th style={{ padding: "12px 10px", whiteSpace: "nowrap", width: "15%" }}>Equipe / Marcos</th>
-                  <th style={{ padding: "12px 10px", textAlign: "right", whiteSpace: "nowrap", width: "10%" }}>Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[...Array(5)].map((_, index) => (
-                  <tr key={index} style={{ borderBottom: "1px solid var(--border)" }}>
-                    <td style={{ padding: "16px 10px" }}>
-                      <div className="skeleton-line" style={{ width: "60px", height: "16px", borderRadius: "4px" }} />
-                    </td>
-                    <td style={{ padding: "16px 10px" }}>
-                      <div className="skeleton-line" style={{ width: "140px", height: "16px", borderRadius: "4px", marginBottom: "6px" }} />
-                      <div className="skeleton-line" style={{ width: "90px", height: "12px", borderRadius: "4px" }} />
-                    </td>
-                    <td style={{ padding: "16px 10px" }}>
-                      <div className="skeleton-line" style={{ width: "160px", height: "16px", borderRadius: "4px", marginBottom: "6px" }} />
-                      <div className="skeleton-line" style={{ width: "80px", height: "16px", borderRadius: "8px" }} />
-                    </td>
-                    <td style={{ padding: "16px 10px" }}>
-                      <div className="skeleton-line skeleton-badge" style={{ width: "90px", height: "24px", borderRadius: "6px" }} />
-                    </td>
-                    <td style={{ padding: "16px 10px" }}>
-                      <div className="skeleton-line" style={{ width: "110px", height: "14px", borderRadius: "4px", marginBottom: "6px" }} />
-                      <div className="skeleton-line" style={{ width: "80px", height: "14px", borderRadius: "4px" }} />
-                    </td>
-                    <td style={{ padding: "16px 10px", textAlign: "right" }}>
-                      <div className="skeleton-line skeleton-button" style={{ width: "110px", height: "30px", borderRadius: "8px", display: "inline-block" }} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : filteredPropostas.length === 0 ? (
-          <p className="p">Nenhuma proposta encontrada.</p>
+          <TableSkeleton columns={columns} />
+        ) : erro ? null : filteredPropostas.length === 0 ? (
+          <EmptyState>Nenhuma proposta encontrada.</EmptyState>
         ) : (
-          <div style={{ overflowX: "auto", border: "1px solid var(--border)", borderRadius: 12 }}>
-            <table className="table" style={{ width: "100%", textAlign: "left", borderCollapse: "collapse", margin: 0 }}>
+          <div className="data-table-wrap">
+            <table className="data-table">
               <thead>
-                <tr style={{ borderBottom: "1px solid var(--border)", background: "rgba(255,255,255,0.02)" }}>
-                  <th style={{ padding: "12px 10px", whiteSpace: "nowrap" }}>ID</th>
-                  <th style={{ padding: "12px 10px", whiteSpace: "nowrap" }}>Proponente</th>
-                  <th style={{ padding: "12px 10px", whiteSpace: "nowrap" }}>Edital (Modalidade)</th>
-                  <th style={{ padding: "12px 10px", whiteSpace: "nowrap" }}>Status</th>
-                  <th style={{ padding: "12px 10px", whiteSpace: "nowrap" }}>Equipe / Marcos</th>
-                  <th style={{ padding: "12px 10px", textAlign: "right", whiteSpace: "nowrap" }}>Ações</th>
+                <tr>
+                  <th>ID</th>
+                  <th>Proponente</th>
+                  <th>Edital (Modalidade)</th>
+                  <th>Status</th>
+                  <th>Equipe / Marcos</th>
+                  <th className="num">Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredPropostas.map((prop) => (
-                  <tr key={prop.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                    <td 
-                      style={{ 
-                        padding: "12px 10px", 
-                        fontFamily: "monospace", 
-                        fontSize: 12, 
-                        whiteSpace: "nowrap",
+                  <tr key={prop.id}>
+                    <td
+                      style={{
+                        fontFamily: "monospace",
+                        fontSize: 12,
                         cursor: "pointer",
                         textDecoration: "underline dashed rgba(255, 255, 255, 0.25)"
                       }}
@@ -230,43 +148,31 @@ function AdminPropostasInner() {
                     >
                       {prop.id.substring(0, 8)}...
                     </td>
-                    <td style={{ padding: "12px 10px", whiteSpace: "nowrap" }}>
+                    <td>
                       <strong>{prop.proponente.nome}</strong><br/>
-                      <span style={{ fontSize: 12, color: "var(--muted)" }}>{prop.proponente.cpf}</span>
+                      <span className="sub">{prop.proponente.cpf}</span>
                     </td>
-                    <td style={{ padding: "12px 10px", whiteSpace: "nowrap" }}>
+                    <td>
                       {prop.edital.titulo}<br/>
-                      <span className="badge" style={{ marginTop: 4, display: "inline-block", fontSize: "10px", padding: "2px 6px" }}>{prop.edital.modalidade}</span>
+                      <span className="badge tag">{prop.edital.modalidade}</span>
                     </td>
-                    <td style={{ padding: "12px 10px", whiteSpace: "nowrap" }}>
-                      <span 
-                        className="badge"
-                        style={{
-                          backgroundColor: statusColors[prop.status] || "var(--border)",
-                          color: "#fff",
-                          fontWeight: "bold",
-                          fontSize: "12.5px",
-                          border: "none",
-                          padding: "5px 10px"
-                        }}
-                      >
-                        {statusLabelMap[prop.status] || prop.status}
-                      </span>
+                    <td>
+                      <StatusBadge label={statusLabelMap[prop.status] || prop.status} color={statusColors[prop.status]} />
                     </td>
-                    <td style={{ padding: "12px 10px", fontSize: 13, whiteSpace: "nowrap" }}>
+                    <td style={{ fontSize: 13 }}>
                       👤 {prop._count.equipe} membro(s)<br/>
                       📅 {prop._count.marcos} mês(es)
                     </td>
-                    <td style={{ padding: "12px 10px", textAlign: "right", whiteSpace: "nowrap" }}>
+                    <td className="num">
                       <div style={{ position: "relative", display: "inline-block" }}>
-                        <Link 
-                          href={`/admin/propostas/${prop.id}`} 
-                          className="btn secondary" 
-                          style={{ 
-                            whiteSpace: "nowrap", 
-                            display: "inline-flex", 
-                            alignItems: "center", 
-                            fontSize: "12px", 
+                        <Link
+                          href={`/admin/propostas/${prop.id}`}
+                          className="btn secondary"
+                          style={{
+                            whiteSpace: "nowrap",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            fontSize: "12px",
                             padding: "6px 12px",
                             borderColor: prop.marcos?.some((m) => m.status === "SUBMETIDO") ? "#D4AF37" : undefined,
                             color: prop.marcos?.some((m) => m.status === "SUBMETIDO") ? "#D4AF37" : undefined

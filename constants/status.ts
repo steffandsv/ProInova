@@ -85,3 +85,22 @@ export const marcoAcaoLabelMap: Record<string, string> = {
   REJEICAO: "Rejeição",
   ANULACAO: "Anulação",
 };
+
+// ─── Edital ──────────────────────────────────────────────────────────────────
+
+export const editalStatusLabelMap: Record<string, string> = {
+  RASCUNHO: "Rascunho",
+  ABERTO: "Aberto",
+  ENCERRADO: "Encerrado",
+};
+
+export const editalStatusColors: Record<string, string> = {
+  RASCUNHO: "var(--muted)",
+  ABERTO: "var(--good)",
+  ENCERRADO: "var(--bad)",
+};
+
+export const modalidadeLabelMap: Record<string, string> = {
+  EDUCACAO: "Educação",
+  GERAL: "Geral",
+};
