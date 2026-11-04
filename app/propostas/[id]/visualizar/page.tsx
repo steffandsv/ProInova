@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { DetailSkeleton } from "@/app/components/Skeletons";
 
 /* ═══════════════════════════════════════════════════════
    STATUS CONFIGURATION
@@ -96,13 +97,7 @@ export default function VisualizarPropostaPage({ params }: { params: { id: strin
       .catch(() => { setError("Falha de rede."); setLoading(false); });
   }, [params.id]);
 
-  if (loading)
-    return (
-      <div className="section" style={{ textAlign: "center", paddingTop: 100 }}>
-        <div className="hero-orb hero-orb--1" style={{ width: 300, height: 300, top: "20%", left: "50%", transform: "translate(-50%, 0)", opacity: 0.5 }} aria-hidden />
-        <span className="gradient-text" style={{ fontSize: 24, fontWeight: 700 }}>Carregando proposta...</span>
-      </div>
-    );
+  if (loading) return <DetailSkeleton sections={4} />;
 
   if (error || !data)
     return (

@@ -9,6 +9,8 @@ import {
   marcoStatusColors as marcoStatusColorMap,
   statusColors,
 } from "@/constants/status";
+import { ErrorState, PageHeader } from "@/app/components/ui";
+import { DetailSkeleton } from "@/app/components/Skeletons";
 
 const buttonStyle: React.CSSProperties = {
   fontSize: "14px",
@@ -171,8 +173,15 @@ export default function PropostaMarcosPage({ params }: { params: { id: string } 
 
 
 
-  if (loading) return <div className="card"><p className="p">Carregando marcos...</p></div>;
-  if (error) return <div className="card"><p className="p" style={{ color: "var(--bad)" }}>{error}</p></div>;
+  if (loading) return <DetailSkeleton sections={3} />;
+  if (error) {
+    return (
+      <div className="card">
+        <PageHeader title="Meus Marcos" back={{ href: "/painel", label: "Voltar ao painel" }} />
+        <ErrorState message={error} onRetry={() => window.location.reload()} />
+      </div>
+    );
+  }
 
   return (
     <div className="grid" style={{ gap: 14 }}>

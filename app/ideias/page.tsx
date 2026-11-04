@@ -49,11 +49,26 @@ export default function BancoDeIdeiasPage() {
   /* ── Loading state ─────────────────────────────────────────────── */
   if (loading) {
     return (
-      <div className="ideias-canvas" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 64, marginBottom: 16, animation: "idea-pulse 2s ease-in-out infinite" }}>💡</div>
-          <p style={{ color: "var(--muted)", fontSize: 18 }}>Carregando ideias…</p>
+      <div className="ideias-canvas" aria-busy="true" aria-label="Carregando ideias">
+        <div style={{ textAlign: "center", paddingTop: 36 }}>
+          <div className="skeleton-line" style={{ width: 280, height: 36, borderRadius: 10, margin: "0 auto 14px" }} />
+          <div className="skeleton-line" style={{ width: 360, maxWidth: "80%", height: 16, margin: "0 auto 18px" }} />
+          <div className="skeleton-line skeleton-button" style={{ width: 170, margin: "0 auto" }} />
         </div>
+        {[
+          { size: 92, top: "38%", left: "16%" },
+          { size: 70, top: "30%", left: "34%" },
+          { size: 110, top: "55%", left: "48%" },
+          { size: 64, top: "36%", left: "66%" },
+          { size: 84, top: "62%", left: "78%" },
+          { size: 58, top: "70%", left: "24%" },
+        ].map((b, i) => (
+          <div
+            key={i}
+            className="skeleton-line"
+            style={{ position: "absolute", width: b.size, height: b.size, borderRadius: "50%", top: b.top, left: b.left }}
+          />
+        ))}
       </div>
     );
   }

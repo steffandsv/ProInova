@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ErrorState } from "@/app/components/ui";
+import { LinesSkeleton } from "@/app/components/Skeletons";
 
 export default function ModalProjeto({ id, onClose }: { id: string; onClose: () => void }) {
   const [data, setData] = useState<any>(null);
@@ -15,7 +17,10 @@ export default function ModalProjeto({ id, onClose }: { id: string; onClose: () 
         else setError(res.error || "Erro ao carregar");
         setLoading(false);
       })
-      .catch(() => setError("Falha de rede"));
+      .catch(() => {
+        setError("Falha de rede ao carregar o projeto.");
+        setLoading(false);
+      });
   }, [id]);
 
   function renderHtml(html: string | undefined | null) {
@@ -68,8 +73,8 @@ export default function ModalProjeto({ id, onClose }: { id: string; onClose: () 
         </div>
 
         <div style={{ padding: 24 }} className="grid">
-          {loading && <p className="p">Carregando dados completos do projeto...</p>}
-          {error && <p className="p" style={{ color: "var(--bad)" }}>{error}</p>}
+          {loading && <LinesSkeleton blocks={4} />}
+          {error && <ErrorState message={error} />}
           
           {data && (
             <div className="grid" style={{ gap: 20 }}>

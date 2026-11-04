@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ErrorState } from "@/app/components/ui";
+import { LinesSkeleton } from "@/app/components/Skeletons";
 
 type ModalFiscalizacaoProps = {
   id: string;
@@ -86,17 +88,9 @@ export default function ModalFiscalizacao({ id, onClose }: ModalFiscalizacaoProp
 
         {/* Content */}
         <div style={{ padding: 24, overflowY: "auto", flex: 1 }} className="grid">
-          {loading && (
-            <div style={{ textAlign: "center", padding: "40px 0" }}>
-              <p className="p">Carregando histórico e provas públicas...</p>
-            </div>
-          )}
-          
-          {error && (
-            <div style={{ padding: 14, borderColor: "var(--bad)", borderStyle: "solid", borderWidth: 1, borderRadius: 10, background: "rgba(239,68,68,0.05)" }}>
-              <p className="p" style={{ color: "var(--bad)", margin: 0 }}>{error}</p>
-            </div>
-          )}
+          {loading && <LinesSkeleton blocks={3} />}
+
+          {error && <ErrorState message={error} />}
 
           {data && (
             <div className="grid" style={{ gap: 20 }}>

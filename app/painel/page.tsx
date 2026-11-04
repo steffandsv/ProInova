@@ -2,11 +2,14 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { ErrorState } from "@/app/components/ui";
+import { CardsSkeleton, SkeletonLine } from "@/app/components/Skeletons";
 
 export default function PainelPage() {
   const [user, setUser] = useState<any>(null);
   const [propostas, setPropostas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState("");
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -19,8 +22,10 @@ export default function PainelPage() {
             .then((r2) => r2.json())
             .then((res2) => {
               if (res2.ok) setPropostas(res2.data || []);
-              setLoading(false);
-            });
+              else setErro("Não foi possível carregar suas propostas.");
+            })
+            .catch(() => setErro("Falha de rede ao carregar suas propostas."))
+            .finally(() => setLoading(false));
         } else {
           window.location.href = "/login";
         }
@@ -29,9 +34,14 @@ export default function PainelPage() {
   }, []);
 
   if (loading) return (
-    <div className="section" style={{ textAlign: "center", paddingTop: 100 }}>
-      <div className="hero-orb hero-orb--1" style={{ width: 300, height: 300, top: "20%", left: "50%", transform: "translate(-50%, 0)", opacity: 0.5 }} aria-hidden />
-      <span className="gradient-text" style={{ fontSize: 24, fontWeight: 700 }}>Carregando seu painel...</span>
+    <div className="grid" style={{ gap: 18 }}>
+      <div style={{ textAlign: "center", padding: "40px 0 12px" }}>
+        <SkeletonLine width={160} height={26} radius={99} style={{ margin: "0 auto 18px" }} />
+        <SkeletonLine width="46%" height={40} radius={10} style={{ margin: "0 auto 14px" }} />
+        <SkeletonLine width="38%" height={16} style={{ margin: "0 auto" }} />
+      </div>
+      <SkeletonLine width={200} height={26} radius={8} />
+      <CardsSkeleton count={3} />
     </div>
   );
 
@@ -54,7 +64,7 @@ export default function PainelPage() {
   };
 
   return (
-    <div style={{ position: "relative" }}>
+    <div style={{ position: "relative", overflowX: "clip" }}>
       {/* Background Orbs for the Dashboard */}
       <div className="hero-orb hero-orb--1" style={{ width: 400, height: 400, top: -50, left: -100, opacity: 0.3 }} aria-hidden />
       <div className="hero-orb hero-orb--2" style={{ width: 300, height: 300, top: 100, right: -50, opacity: 0.2 }} aria-hidden />
@@ -97,7 +107,9 @@ export default function PainelPage() {
             </Link>
           </div>
 
-          {propostas.length === 0 ? (
+          {erro && <ErrorState message={erro} onRetry={() => window.location.reload()} />}
+
+          {erro ? null : propostas.length === 0 ? (
             <div className="card" style={{ textAlign: "center", padding: "40px 20px" }}>
               <span style={{ fontSize: 48, display: "block", marginBottom: 16 }}>💡</span>
               <h3 style={{ fontSize: 20, margin: "0 0 8px" }}>Nenhuma ideia no papel ainda?</h3>

@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ErrorState, PageHeader } from "@/app/components/ui";
+import { DetailSkeleton } from "@/app/components/Skeletons";
 
 export default function ProjetoPublicoPage({ params }: { params: { id: string } }) {
   const [data, setData] = useState<any>(null);
@@ -26,8 +28,15 @@ export default function ProjetoPublicoPage({ params }: { params: { id: string } 
     REJEITADO: "❌ Rejeitado",
   };
 
-  if (loading) return <div className="card"><p className="p">Carregando projeto...</p></div>;
-  if (error) return <div className="card"><h1 className="h1">Projeto não encontrado</h1><p className="p">{error}</p></div>;
+  if (loading) return <DetailSkeleton sections={3} />;
+  if (error) {
+    return (
+      <div className="card">
+        <PageHeader title="Projeto não encontrado" back={{ href: "/transparencia", label: "Voltar ao Portal de Transparência" }} />
+        <ErrorState message={error} />
+      </div>
+    );
+  }
 
   const totalMarcos = data.marcos?.length || 0;
   const validados = data.marcos?.filter((m: any) => m.status === "VALIDADO").length || 0;

@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { z } from "zod";
 import RichEditor from "@/app/RichEditor";
 import { formatCPF, isValidCPF, onlyDigits } from "@/lib/cpf";
+import { FormSkeleton } from "@/app/components/Skeletons";
 
 /* ─── Age-based school/eligibility calculator ─── */
 function calcVinculo(dataNasc: string | null | undefined): { vinculoEstudantil: string; ehMenor: boolean; inaptoMenor14: boolean } {
@@ -235,11 +236,7 @@ type PropostaInput = z.infer<typeof PropostaSchema>;
 
 export default function NovaPropostaPage() {
   return (
-    <Suspense fallback={
-      <div className="section" style={{ textAlign: "center", paddingTop: 100 }}>
-        <span className="gradient-text" style={{ fontSize: 24, fontWeight: 700 }}>Carregando formulário...</span>
-      </div>
-    }>
+    <Suspense fallback={<FormSkeleton fields={8} />}>
       <NovaPropostaInner />
     </Suspense>
   );
@@ -737,13 +734,7 @@ function NovaPropostaInner() {
     }
   }
 
-  if (fetchingEditais)
-    return (
-      <div className="section" style={{ textAlign: "center", paddingTop: 100 }}>
-        <div className="hero-orb hero-orb--1" style={{ width: 300, height: 300, top: "20%", left: "50%", transform: "translate(-50%, 0)", opacity: 0.5 }} aria-hidden />
-        <span className="gradient-text" style={{ fontSize: 24, fontWeight: 700 }}>Carregando formulário...</span>
-      </div>
-    );
+  if (fetchingEditais) return <FormSkeleton fields={8} />;
 
   return (
     <div style={{ position: "relative", paddingBottom: 60 }}>
