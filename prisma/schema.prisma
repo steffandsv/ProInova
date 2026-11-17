@@ -335,3 +335,66 @@ model InscricaoLancamento {
 
   @@index([createdAt])
 }
+
+// ─── SharkTank Jaborandi (evento de pitches) ─────────────────────────
+// Tabelas novas e independentes: o evento não altera nada do fluxo de propostas.
+
+enum SharkStartupStatus {
+  PENDENTE // cadastrada pelo site, aguardando a organização
+  APROVADA // aparece em "Conheça as Startups"
+  OCULTA // recusada ou escondida pela organização
+}
+
+// Visitante inscrito. O id sequencial é o número do ingresso.
+model SharkVisitante {
+  id          Int      @id @default(autoincrement())
+  cpf         String   @unique @db.VarChar(11)
+  nome        String   @db.VarChar(255)
+  whatsapp    String?  @db.VarChar(20)
+  municipe    Boolean  @default(false) // CPF encontrado no cadastro de Jaborandi
+  listaEspera Boolean  @default(false) // inscrito depois de lotar a capacidade
+  origem      String?  @db.VarChar(60) // ?ref= da divulgação (whatsapp, instagram...)
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+// Startup/empresa no tanque. Linhas com propostaId apenas sobrescrevem
+// a vitrine de um projeto do ProInova (ex.: foto enviada pela organização).
+model SharkStartup {
+  id                  String             @id @default(cuid())
+  propostaId          String?            @unique @db.VarChar(191)
+  status              SharkStartupStatus @default(PENDENTE)
+  nome                String             @db.VarChar(120)
+  pitch               String             @db.VarChar(180)
+  descricao           String             @db.Text
+  categoria           String             @db.VarChar(60)
+  estagio             String?            @db.VarChar(40)
+  cidade              String?            @db.VarChar(120)
+  link                String?            @db.VarChar(500)
+  foto                Bytes?             @db.MediumBlob
+  fotoMime            String?            @db.VarChar(40)
+  responsavelCpf      String?            @db.VarChar(11)
+  responsavelNome     String?            @db.VarChar(255)
+  responsavelWhatsapp String?            @db.VarChar(20)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  @@index([status])
+}
+
+// Convidados VIP ("os tubarões"), gerenciados pela organização no admin.
+model SharkVip {
+  id        String   @id @default(cuid())
+  nome      String   @db.VarChar(120)
+  cargo     String   @db.VarChar(160)
+  cidade    String?  @db.VarChar(120)
+  foto      Bytes?   @db.MediumBlob
+  fotoMime  String?  @db.VarChar(40)
+  ordem     Int      @default(0)
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ordem])
+}

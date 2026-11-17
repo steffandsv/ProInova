@@ -8,6 +8,7 @@ const ITENS = [
   { href: "/admin/editais", label: "Editais", roles: ["ADMIN"] },
   { href: "/admin/pagamentos", label: "Pagamentos", roles: ["ADMIN"] },
   { href: "/admin/lancamento", label: "Inscrições", roles: ["ADMIN", "TRIAGEM", "EDUCACAO", "CMAA", "PREFEITO"] },
+  { href: "/admin/sharktank", label: "SharkTank", roles: ["ADMIN", "TRIAGEM", "EDUCACAO", "CMAA", "PREFEITO"] },
 ];
 
 export default function AdminNav({ role }: { role: string }) {
