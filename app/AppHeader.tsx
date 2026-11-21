@@ -52,7 +52,8 @@ export default function AppHeader() {
             )}
             <span className="nav-separator" />
             <Link href="/propostas/nova" className="badge" style={{ padding: "8px 16px", background: "rgba(124, 92, 255, 0.15)", borderColor: "var(--accent)", color: "var(--text)", fontWeight: 600 }}>Nova Proposta</Link>
-            <a href="/api/auth/logout" style={{ marginLeft: 8, color: "var(--muted)" }}>Sair</a>
+            <Link href="/trocar-senha" style={{ marginLeft: 8, color: "var(--muted)" }}>Trocar senha</Link>
+            <a href="/api/auth/logout" style={{ color: "var(--muted)" }}>Sair</a>
           </div>
         )}
       </nav>

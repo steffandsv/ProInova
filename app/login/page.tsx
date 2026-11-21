@@ -30,7 +30,7 @@ export default function LoginPage() {
         setMsg(json?.message || "Falha ao entrar.");
         return;
       }
-      window.location.href = "/painel";
+      window.location.href = json.mustChangePassword ? "/trocar-senha" : "/painel";
     } catch {
       setMsg("Falha de rede. Tente novamente.");
     } finally {

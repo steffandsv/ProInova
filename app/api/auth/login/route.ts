@@ -17,10 +17,10 @@ export async function POST(req: Request) {
   const ok = await verifyPassword(senha, user.passwordHash);
   if (!ok) return NextResponse.json({ message: "Credenciais inválidas." }, { status: 401 });
 
-  const token = signSession({ sub: user.id, role: user.role, cpf: user.cpf, nome: user.nome });
+  const token = signSession({ sub: user.id, role: user.role, cpf: user.cpf, nome: user.nome, mustChangePassword: user.mustChangePassword });
 
   // Set cookie directly on the response (cookies() from next/headers is unreliable in POST handlers)
-  const response = NextResponse.json({ ok: true });
+  const response = NextResponse.json({ ok: true, mustChangePassword: user.mustChangePassword });
   response.cookies.set("proinova_session", token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",

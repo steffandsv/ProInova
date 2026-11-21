@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
+import { randomInt } from "crypto";
 
 const COOKIE_NAME = "proinova_session";
 
@@ -10,6 +11,7 @@ export type SessionPayload = {
   role: string;
   cpf: string;
   nome: string;
+  mustChangePassword?: boolean; // entrou com senha provisória: o middleware só libera a troca
 };
 
 export function signSession(payload: Omit<SessionPayload, "userId">): string {
@@ -97,3 +99,11 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
   return bcrypt.compare(password + pepper, hash);
 }
 
+
+/** Senha provisória legível, sem caracteres que se confundem (0/O, 1/l/I). */
+export function gerarSenhaProvisoria(tamanho = 10): string {
+  const alfabeto = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  let senha = "";
+  for (let i = 0; i < tamanho; i++) senha += alfabeto[randomInt(alfabeto.length)];
+  return senha;
+}

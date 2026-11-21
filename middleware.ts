@@ -32,6 +32,7 @@ const PROTECTED_ROUTES: Record<string, string[]> = {
   "/api/propostas": [], // any authenticated user
   "/propostas": [],     // any authenticated user
   "/painel": [],        // any authenticated user
+  "/trocar-senha": [],  // any authenticated user
 };
 
 /**
@@ -115,6 +116,14 @@ export function middleware(request: NextRequest) {
       return NextResponse.json({ message: "Sessão inválida." }, { status: 401 });
     }
     return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  // Senha provisória: até criar a própria senha, só a tela de troca fica liberada
+  if (payload.mustChangePassword && !pathname.startsWith("/trocar-senha")) {
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ message: "Troque a senha provisória antes de continuar." }, { status: 403 });
+    }
+    return NextResponse.redirect(new URL("/trocar-senha", request.url));
   }
 
   // If no specific roles required, any authenticated user can access

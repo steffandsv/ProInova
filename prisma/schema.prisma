@@ -89,6 +89,7 @@ model User {
   rg           String?   @db.VarChar(255)
   role         Role      @default(PROPONENTE)
   passwordHash String    @db.VarChar(255)
+  mustChangePassword Boolean @default(false) // senha provisória: obriga a troca no próximo login
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 

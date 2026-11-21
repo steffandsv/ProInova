@@ -104,3 +104,14 @@ export const modalidadeLabelMap: Record<string, string> = {
   EDUCACAO: "Educação",
   GERAL: "Geral",
 };
+
+// ─── Perfil de usuário ───────────────────────────────────────────────────────
+
+export const roleLabelMap: Record<string, string> = {
+  PROPONENTE: "Proponente",
+  TRIAGEM: "Triagem",
+  EDUCACAO: "Educação",
+  CMAA: "CMAA",
+  PREFEITO: "Prefeito",
+  ADMIN: "Admin",
+};

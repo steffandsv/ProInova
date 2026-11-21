@@ -16,6 +16,7 @@ export async function GET() {
         nome: session.nome,
         cpf: session.cpf,
         role: session.role,
+        mustChangePassword: Boolean(session.mustChangePassword),
       },
     });
   } catch {
