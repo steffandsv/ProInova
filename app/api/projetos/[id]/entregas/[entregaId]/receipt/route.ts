@@ -5,6 +5,7 @@ import { requireAuth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { logAudit } from "@/lib/audit";
 import { generateReceiptPdf } from "@/lib/pdf/generateReceipt";
+import { nomeArquivoRecibo, participantesDoMarco, urlDaLei, valorDoMarco } from "@/lib/recibos";
 
 export async function GET(
   request: Request,
@@ -59,9 +60,7 @@ export async function GET(
     }
 
     // 5. Buscar valor calculado no sistema
-    const teto = marco.proposta.edital?.config?.tetoMensal ?? 1000;
-    const notaMultiplier = typeof marco.nota === "number" ? marco.nota / 10 : 1.0;
-    const valorComNota = teto * notaMultiplier;
+    const valorComNota = valorDoMarco(marco);
 
     // Obter o membroId opcional dos query params
     const { searchParams } = new URL(request.url);
@@ -79,17 +78,10 @@ export async function GET(
       }
     }
 
-    const participantes = equipeMembros.map((eq) => ({
-      nome: eq.nome,
-      cpf: eq.cpf,
-      percentual: eq.percentualRateio,
-      valor: (valorComNota * eq.percentualRateio) / 100,
-    }));
+    const participantes = participantesDoMarco(marco, equipeMembros);
 
     // 6. Configurar URL absoluta da lei para os cliques no PDF
-    const host = request.headers.get("host") || "localhost:3000";
-    const protocol = host.startsWith("localhost") || host.startsWith("127.0.0.1") ? "http" : "https";
-    const absoluteLeiUrl = `${protocol}://${host}/LEI.pdf`;
+    const absoluteLeiUrl = urlDaLei(request);
 
     // 7. Gerar PDF
     const pdfBuffer = await generateReceiptPdf(
@@ -121,28 +113,7 @@ export async function GET(
     });
 
     // 9. Retornar stream para download imediato
-    // Gerar slug com os nomes dos participantes
-    const nomesSlug = participantes.length > 0
-      ? participantes
-          .map((p) =>
-            p.nome
-              .toLowerCase()
-              .normalize("NFD")
-              .replace(/[\u0300-\u036f]/g, "") // remove acentos
-              .replace(/[^a-z0-9]+/g, "_")
-              .replace(/^_+|_+$/g, "")
-          )
-          .join("_")
-      : "proponente";
-
-    // Formatar data do mês de referência (ou data de validação) no formato DD-MM-YYYY
-    const dateRef = marco.validadoEm || new Date();
-    const dia = String(dateRef.getDate()).padStart(2, "0");
-    const mesFormatado = String(dateRef.getMonth() + 1).padStart(2, "0");
-    const ano = dateRef.getFullYear();
-    const dataFormatada = `${dia}-${mesFormatado}-${ano}`;
-
-    const sanitizedFilename = `recibo_${nomesSlug}_${dataFormatada}.pdf`;
+    const sanitizedFilename = nomeArquivoRecibo(participantes.map((p) => p.nome), marco);
     return new Response(pdfBuffer as any, {
       headers: {
         "Content-Type": "application/pdf",

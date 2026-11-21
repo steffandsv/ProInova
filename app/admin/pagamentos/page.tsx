@@ -5,6 +5,7 @@ import { modalidadeLabelMap } from "@/constants/status";
 import { useUrlState } from "@/app/hooks/useUrlState";
 import { EmptyState, ErrorState, FilterChips, FilterGroup, Filters, LeiLink, PageHeader, SearchInput, StatCard, normalize } from "@/app/components/ui";
 import { ListPageSkeleton, StatsSkeleton, TableSkeleton, type SkeletonColumn } from "@/app/components/Skeletons";
+import ModalRecibos from "./ModalRecibos";
 
 type Rateio = { nome: string; cpf: string; percentual: number; valor: number };
 type ItemLote = {
@@ -52,6 +53,7 @@ function AdminPagamentosInner() {
   const [itens, setItens] = useState<ItemLote[]>([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState("");
+  const [modalRecibos, setModalRecibos] = useState(false);
 
   const carregar = useCallback(async () => {
     setLoading(true);
@@ -88,6 +90,9 @@ function AdminPagamentosInner() {
           subtitle="Marcos validados e aptos para o lote financeiro."
           actions={
             <>
+              <button type="button" className="btn" onClick={() => setModalRecibos(true)}>
+                📄 Recibos das últimas entregas
+              </button>
               <a href="/api/admin/pagamentos?format=csv" className="btn secondary" download>
                 📥 Exportar CSV (Lote Financeiro)
               </a>
@@ -200,6 +205,8 @@ function AdminPagamentosInner() {
           </div>
         )}
       </div>
+
+      {modalRecibos && <ModalRecibos onClose={() => setModalRecibos(false)} />}
     </div>
   );
 }
