@@ -13,6 +13,10 @@ const nextConfig = {
     serverActions: { allowedOrigins: [] },
     serverComponentsExternalPackages: ["pdfkit"]
   },
+  // Links do evento divulgados antes da troca de nome para ProInova Day continuam funcionando.
+  async redirects() {
+    return [{ source: "/sharktank/:path*", destination: "/proinovaday/:path*", permanent: true }];
+  },
 };
 
 module.exports = nextConfig;

@@ -49,13 +49,13 @@ const PUBLIC_ROUTES = [
   "/api/projeto",
   "/api/editais/abertos",
   "/api/lancamento",
-  "/api/sharktank",
+  "/api/proinovaday",
   "/login",
   "/cadastro",
   "/transparencia",
   "/projeto",
   "/lancamento",
-  "/sharktank",
+  "/proinovaday",
   "/",
 ];
 

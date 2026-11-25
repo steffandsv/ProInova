@@ -337,17 +337,20 @@ model InscricaoLancamento {
   @@index([createdAt])
 }
 
-// ─── SharkTank Jaborandi (evento de pitches) ─────────────────────────
+// ─── ProInova Day Jaborandi (evento de pitches) ─────────────────────────
 // Tabelas novas e independentes: o evento não altera nada do fluxo de propostas.
+// Os @@map preservam os nomes físicos das tabelas criadas antes da troca de nome
+// do evento: sem eles, o `prisma db push --accept-data-loss` do deploy apagaria
+// as tabelas antigas (inscrições, startups e VIPs) e criaria tabelas vazias.
 
-enum SharkStartupStatus {
+enum ProInovaDayStartupStatus {
   PENDENTE // cadastrada pelo site, aguardando a organização
   APROVADA // aparece em "Conheça as Startups"
   OCULTA // recusada ou escondida pela organização
 }
 
 // Visitante inscrito. O id sequencial é o número do ingresso.
-model SharkVisitante {
+model ProInovaDayVisitante {
   id          Int      @id @default(autoincrement())
   cpf         String   @unique @db.VarChar(11)
   nome        String   @db.VarChar(255)
@@ -358,34 +361,36 @@ model SharkVisitante {
   createdAt   DateTime @default(now())
 
   @@index([createdAt])
+  @@map("SharkVisitante")
 }
 
 // Startup/empresa no tanque. Linhas com propostaId apenas sobrescrevem
 // a vitrine de um projeto do ProInova (ex.: foto enviada pela organização).
-model SharkStartup {
-  id                  String             @id @default(cuid())
-  propostaId          String?            @unique @db.VarChar(191)
-  status              SharkStartupStatus @default(PENDENTE)
-  nome                String             @db.VarChar(120)
-  pitch               String             @db.VarChar(180)
-  descricao           String             @db.Text
-  categoria           String             @db.VarChar(60)
-  estagio             String?            @db.VarChar(40)
-  cidade              String?            @db.VarChar(120)
-  link                String?            @db.VarChar(500)
-  foto                Bytes?             @db.MediumBlob
-  fotoMime            String?            @db.VarChar(40)
-  responsavelCpf      String?            @db.VarChar(11)
-  responsavelNome     String?            @db.VarChar(255)
-  responsavelWhatsapp String?            @db.VarChar(20)
-  createdAt           DateTime           @default(now())
-  updatedAt           DateTime           @updatedAt
+model ProInovaDayStartup {
+  id                  String                   @id @default(cuid())
+  propostaId          String?                  @unique @db.VarChar(191)
+  status              ProInovaDayStartupStatus @default(PENDENTE)
+  nome                String                   @db.VarChar(120)
+  pitch               String                   @db.VarChar(180)
+  descricao           String                   @db.Text
+  categoria           String                   @db.VarChar(60)
+  estagio             String?                  @db.VarChar(40)
+  cidade              String?                  @db.VarChar(120)
+  link                String?                  @db.VarChar(500)
+  foto                Bytes?                   @db.MediumBlob
+  fotoMime            String?                  @db.VarChar(40)
+  responsavelCpf      String?                  @db.VarChar(11)
+  responsavelNome     String?                  @db.VarChar(255)
+  responsavelWhatsapp String?                  @db.VarChar(20)
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
 
   @@index([status])
+  @@map("SharkStartup")
 }
 
 // Convidados VIP ("os tubarões"), gerenciados pela organização no admin.
-model SharkVip {
+model ProInovaDayVip {
   id        String   @id @default(cuid())
   nome      String   @db.VarChar(120)
   cargo     String   @db.VarChar(160)
@@ -398,4 +403,5 @@ model SharkVip {
   updatedAt DateTime @updatedAt
 
   @@index([ordem])
+  @@map("SharkVip")
 }
